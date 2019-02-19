@@ -7,7 +7,7 @@
 WebCatalog is an Electron app and can be built on Windows & Linux, but it's **only offically supported on macOS**. 
 
 ## Development
-```
+```bash
 # First, clone the project:
 git clone https://github.com/quanglam2807/webcatalog.git
 cd webcatalog
@@ -22,6 +22,27 @@ yarn electron-dev
 yarn template:electron-dev
 
 # Build for production
-yarn template:prepare
+yarn template:prepare-dist
 yarn dist
+```
+
+## Upgrade installed app template
+```bash
+# Get into webcatalog cloned folder
+cd webcatalog
+
+# Get latest code
+git pull
+
+# Install catalog app dependencies
+yarn
+
+# Prepare production version template app
+yarn template:prepare-dist
+
+# Run catalog app
+yarn electron-dev
+
+# Update apps from catalog app second tab
+click update on each installed app
 ```
