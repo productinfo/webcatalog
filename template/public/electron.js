@@ -1,5 +1,8 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-const { app, protocol } = require('electron');
+const {
+  app,
+  protocol
+} = require('electron');
 const path = require('path');
 
 const loadListeners = require('./listeners');
@@ -8,10 +11,16 @@ const mainWindow = require('./windows/main');
 const openUrlWithWindow = require('./windows/open-url-with');
 
 const createMenu = require('./libs/create-menu');
-const { getWorkspaces } = require('./libs/workspaces');
-const { addView } = require('./libs/views');
-const { getPreference } = require('./libs/preferences');
-const { checkForUpdates } = require('./libs/updater');
+const {
+  getWorkspaces
+} = require('./libs/workspaces');
+const {
+  addView
+} = require('./libs/views');
+const {
+  getPreference
+} = require('./libs/preferences');
+// const { checkForUpdates } = require('./libs/updater');
 
 const appJson = require('./app.json');
 
@@ -61,7 +70,7 @@ if (!gotTheLock) {
 
     commonInit();
 
-    checkForUpdates(true);
+    // checkForUpdates(true);
   });
 
   app.on('before-quit', () => {

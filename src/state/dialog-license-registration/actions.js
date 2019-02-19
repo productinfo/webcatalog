@@ -1,4 +1,3 @@
-
 import {
   DIALOG_LICENSE_REGISTRATION_CLOSE,
   DIALOG_LICENSE_REGISTRATION_FORM_UPDATE,
@@ -35,14 +34,14 @@ export const updateForm = changes => ({
 });
 
 export const register = () => (dispatch, getState) => {
-  const state = getState();
+  // const state = getState();
 
-  const { form } = state.dialogLicenseRegistration;
+  // const { form } = state.dialogLicenseRegistration;
 
-  const validatedChanges = validate(form, getValidationRules(getState()));
-  if (hasErrors(validatedChanges)) {
-    return dispatch(updateForm(validatedChanges));
-  }
+  // const validatedChanges = validate(form, getValidationRules(getState()));
+  // if (hasErrors(validatedChanges)) {
+  //   return dispatch(updateForm(validatedChanges));
+  // }
 
   requestSetPreference('registered', true);
 

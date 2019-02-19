@@ -8,7 +8,9 @@ const path = require('path');
 
 const appJson = require('../app.json');
 
-const { getPreference } = require('../libs/preferences');
+const {
+  getPreference
+} = require('../libs/preferences');
 
 const views = {};
 
@@ -59,11 +61,11 @@ const addView = (browserWindow, workspace) => {
 
     // open new window
     if (
-      nextDomain === null
-      || nextDomain === curDomain
-      || nextDomain === 'accounts.google.com'
-      || nextDomain === 'feedly.com'
-      || nextUrl.indexOf('oauth') > -1 // Works with Google & Facebook.
+      nextDomain === null ||
+      nextDomain === curDomain ||
+      nextDomain === 'accounts.google.com' ||
+      nextDomain === 'feedly.com' ||
+      nextUrl.indexOf('oauth') > -1 // Works with Google & Facebook.
     ) {
       view.webContents.loadURL(nextUrl);
       return;
@@ -73,8 +75,9 @@ const addView = (browserWindow, workspace) => {
   });
 
   // Hide Electron from UA to improve compatibility
-  let uaStr = view.webContents.getUserAgent();
-  uaStr = uaStr.replace(`Electron/${process.versions.electron}`, `Juli/${process.version}`);
+  // let uaStr = view.webContents.getUserAgent();
+  // uaStr = uaStr.replace(`Electron/${process.versions.electron}`, `Juli/${process.version}`);
+  let uaStr = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.106 Safari/537.36"
   view.webContents.setUserAgent(uaStr);
 
   // Unread count badge
