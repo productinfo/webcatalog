@@ -1,11 +1,15 @@
-const { app } = require('electron');
+const {
+  app
+} = require('electron');
 const Sentry = require('@sentry/electron');
-const { getPreference } = require('./preferences');
+const {
+  getPreference
+} = require('./preferences');
 
 let initiated = false;
 
 const init = () => {
-  const errorMonitoring = getPreference('errorMonitoring');
+  const errorMonitoring = false;
 
   if (errorMonitoring && app.isPackaged) {
     Sentry.init({
