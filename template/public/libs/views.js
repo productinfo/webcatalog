@@ -8,7 +8,9 @@ const path = require('path');
 
 const appJson = require('../app.json');
 
-const { getPreference } = require('./preferences');
+const {
+  getPreference
+} = require('./preferences');
 const {
   getWorkspace,
   setWorkspace,
@@ -92,10 +94,10 @@ const addView = (browserWindow, workspace) => {
 
     // load in same window
     if (
-      nextDomain === curDomain
-      || nextDomain === 'accounts.google.com'
-      || nextDomain === 'feedly.com'
-      || nextUrl.indexOf('oauth') > -1 // Works with Google & Facebook.
+      nextDomain === curDomain ||
+      nextDomain === 'accounts.google.com' ||
+      nextDomain === 'feedly.com' ||
+      nextUrl.indexOf('oauth') > -1 // Works with Google & Facebook.
     ) {
       view.webContents.loadURL(nextUrl);
       return;
@@ -107,9 +109,10 @@ const addView = (browserWindow, workspace) => {
 
   // Hide Electron from UA to improve compatibility
   // https://github.com/quanglam2807/webcatalog/issues/182
-  let uaStr = view.webContents.getUserAgent();
-  uaStr = uaStr.replace(` ${app.getName()}/${app.getVersion()}`, '');
-  uaStr = uaStr.replace(` Electron/${process.versions.electron}`, '');
+  // let uaStr = view.webContents.getUserAgent();
+  // uaStr = uaStr.replace(` ${app.getName()}/${app.getVersion()}`, '');
+  // uaStr = uaStr.replace(` Electron/${process.versions.electron}`, '');
+  let uaStr = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.106 Safari/537.36"
   view.webContents.setUserAgent(uaStr);
 
   // Unread count badge

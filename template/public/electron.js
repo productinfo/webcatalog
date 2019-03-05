@@ -65,7 +65,7 @@ if (!gotTheLock) {
 
     commonInit();
 
-    checkForUpdates(true);
+    // checkForUpdates(true);
   });
 
   app.on('before-quit', () => {

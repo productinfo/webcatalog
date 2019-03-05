@@ -1,12 +1,14 @@
 const path = require('path');
-const { app } = require('electron');
+const {
+  app
+} = require('electron');
 
 const createMenu = require('./libs/create-menu');
 const loadListeners = require('./listeners');
 
 const mainWindow = require('./windows/main');
 
-require('./libs/updater');
+// require('./libs/updater');
 
 const sentrySession = require('./libs/sentry-session');
 
