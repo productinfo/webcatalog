@@ -40,7 +40,7 @@ yarn dist
 # Get into webcatalog cloned folder
 cd webcatalog
 
-# Get latest code
+# Get latest code, make sure you are on proper branch
 git pull
 
 # Install catalog app dependencies
@@ -53,5 +53,5 @@ yarn template:prepare-dist
 yarn electron-dev
 
 # Update apps from catalog app second tab
-click update on each installed app
+click "UPDATE" on each installed app or "UPDATE ALL" from "Installed" tab
 ```
