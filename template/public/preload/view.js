@@ -65,6 +65,34 @@ window.onload = () => {
   window.contextMenuListener = new ContextMenuListener((info) => {
     window.contextMenuBuilder.buildMenuForElement(info)
       .then((menu) => {
+        if (info.linkURL && info.linkURL.length > 0) {
+          menu.append(new MenuItem({ type: 'separator' }));
+
+          const workspaces = ipcRenderer.sendSync('get-workspaces');
+
+          const workspaceLst = Object.values(workspaces).sort((a, b) => a.order - b.order);
+
+          if (workspaceLst.length < 9) {
+            menu.append(new MenuItem({
+              label: 'Open Link in New Workspace',
+              click: () => {
+                ipcRenderer.send('request-open-url-in-workspace', info.linkURL);
+              },
+            }));
+            menu.append(new MenuItem({ type: 'separator' }));
+          }
+
+          workspaceLst.forEach((workspace) => {
+            const workspaceName = workspace.name || `Workspace ${workspace.order + 1}`;
+            menu.append(new MenuItem({
+              label: `Open Link in ${workspaceName}`,
+              click: () => {
+                ipcRenderer.send('request-open-url-in-workspace', info.linkURL, workspace.id);
+              },
+            }));
+          });
+        }
+
         menu.append(new MenuItem({ type: 'separator' }));
         menu.append(new MenuItem({
           label: 'Back',
@@ -93,10 +121,10 @@ window.onload = () => {
   const linkPreview = document.createElement('div');
   linkPreview.style.cssText = 'max-width: 80vw;height: 22px;position: fixed;bottom: -1px;right: -1px;z-index: 1000000;background-color: rgb(245, 245, 245);border-radius: 2px;border: #9E9E9E  1px solid;font-size: 12.5px;color: rgb(0, 0, 0);padding: 0px 8px;line-height: 22px;font-family: -apple-system, system-ui, BlinkMacSystemFont, sans-serif;white-space: nowrap;text-overflow: ellipsis;overflow: hidden; pointer-events:none;';
   ipcRenderer.on('update-target-url', (e, url) => {
-    if (url) {
+    if (url && document.body) {
       linkPreview.innerText = url;
       document.body.appendChild(linkPreview);
-    } else {
+    } else if (document.body && document.body.contains(linkPreview)) {
       document.body.removeChild(linkPreview);
     }
   });

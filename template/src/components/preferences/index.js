@@ -63,6 +63,7 @@ const getOpenAtLoginString = (openAtLogin) => {
 };
 
 const Preferences = ({
+  attachToMenubar,
   classes,
   cssCodeInjection,
   errorMonitoring,
@@ -71,6 +72,7 @@ const Preferences = ({
   onUpdateIsDefaultMailClient,
   openAtLogin,
   rememberLastPageVisited,
+  shareWorkspaceBrowsingData,
   sidebar,
   spellChecker,
   swipeToNavigate,
@@ -122,6 +124,20 @@ const Preferences = ({
     <Paper className={classes.paper}>
       <List dense>
         <ListItem>
+          <ListItemText primary="Attach to menubar" />
+          <Switch
+            checked={attachToMenubar}
+            onChange={(e) => {
+              requestSetPreference('attachToMenubar', e.target.checked);
+              requestShowRequireRestartDialog();
+            }}
+            classes={{
+              switchBase: classes.switchBase,
+            }}
+          />
+        </ListItem>
+        <Divider />
+        <ListItem>
           <ListItemText primary="Show unread count badge" />
           <Switch
             checked={unreadCountBadge}
@@ -164,20 +180,6 @@ const Preferences = ({
         </ListItem>
         <Divider />
         <ListItem>
-          <ListItemText primary="Remember last page visited" />
-          <Switch
-            checked={rememberLastPageVisited}
-            onChange={(e) => {
-              requestSetPreference('rememberLastPageVisited', e.target.checked);
-              requestShowRequireRestartDialog();
-            }}
-            classes={{
-              switchBase: classes.switchBase,
-            }}
-          />
-        </ListItem>
-        <Divider />
-        <ListItem>
           <ListItemText primary="Use spell checker" />
           <Switch
             checked={spellChecker}
@@ -198,6 +200,34 @@ const Preferences = ({
     </Typography>
     <Paper className={classes.paper}>
       <List dense>
+        <ListItem>
+          <ListItemText primary="Remember last page visited" />
+          <Switch
+            checked={rememberLastPageVisited}
+            onChange={(e) => {
+              requestSetPreference('rememberLastPageVisited', e.target.checked);
+              requestShowRequireRestartDialog();
+            }}
+            classes={{
+              switchBase: classes.switchBase,
+            }}
+          />
+        </ListItem>
+        <Divider />
+        <ListItem>
+          <ListItemText primary="Share browsing data betwwen workspaces" />
+          <Switch
+            checked={shareWorkspaceBrowsingData}
+            onChange={(e) => {
+              requestSetPreference('shareWorkspaceBrowsingData', e.target.checked);
+              requestShowRequireRestartDialog();
+            }}
+            classes={{
+              switchBase: classes.switchBase,
+            }}
+          />
+        </ListItem>
+        <Divider />
         <ListItem button onClick={requestClearBrowsingData}>
           <ListItemText primary="Clear browsing data" secondary="Clear cookies, cache, and more" />
           <ChevronRightIcon color="action" />
@@ -313,6 +343,7 @@ Preferences.defaultProps = {
 };
 
 Preferences.propTypes = {
+  attachToMenubar: PropTypes.bool.isRequired,
   classes: PropTypes.object.isRequired,
   cssCodeInjection: PropTypes.string,
   errorMonitoring: PropTypes.bool.isRequired,
@@ -321,6 +352,7 @@ Preferences.propTypes = {
   onUpdateIsDefaultMailClient: PropTypes.func.isRequired,
   openAtLogin: PropTypes.oneOf(['yes', 'yes-hidden', 'no']).isRequired,
   rememberLastPageVisited: PropTypes.bool.isRequired,
+  shareWorkspaceBrowsingData: PropTypes.bool.isRequired,
   sidebar: PropTypes.bool.isRequired,
   spellChecker: PropTypes.bool.isRequired,
   swipeToNavigate: PropTypes.bool.isRequired,
@@ -329,12 +361,14 @@ Preferences.propTypes = {
 };
 
 const mapStateToProps = state => ({
+  attachToMenubar: state.preferences.attachToMenubar,
   cssCodeInjection: state.preferences.cssCodeInjection,
   errorMonitoring: state.preferences.errorMonitoring,
   isDefaultMailClient: state.general.isDefaultMailClient,
   jsCodeInjection: state.preferences.jsCodeInjection,
   openAtLogin: state.systemPreferences.openAtLogin,
   rememberLastPageVisited: state.preferences.rememberLastPageVisited,
+  shareWorkspaceBrowsingData: state.preferences.shareWorkspaceBrowsingData,
   sidebar: state.preferences.sidebar,
   spellChecker: state.preferences.spellChecker,
   swipeToNavigate: state.preferences.swipeToNavigate,
