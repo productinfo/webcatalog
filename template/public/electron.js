@@ -12,7 +12,6 @@ const { addView } = require('./libs/views');
 const { checkForUpdates } = require('./libs/updater');
 const { getPreference } = require('./libs/preferences');
 const { getWorkspaces } = require('./libs/workspaces');
-const sentrySession = require('./libs/sentry-session');
 
 const appJson = require('./app.json');
 
@@ -56,12 +55,10 @@ if (!gotTheLock) {
   };
 
   app.on('ready', () => {
-    // init as soon as possible
-    sentrySession.init();
-
     global.appJson = appJson;
 
     global.showSidebar = getPreference('sidebar');
+    global.showNavigationBar = getPreference('navigationBar');
 
     commonInit();
 

@@ -8,7 +8,6 @@ import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
 import MenuItem from '@material-ui/core/MenuItem';
 import Paper from '@material-ui/core/Paper';
-import Switch from '@material-ui/core/Switch';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 
@@ -18,11 +17,14 @@ import StatedMenu from '../../shared/stated-menu';
 
 import connectComponent from '../../../helpers/connect-component';
 
+import { getInstallingAppsAsList } from '../../../state/app-management/utils';
+
 import {
   requestOpenInBrowser,
   requestResetPreferences,
   requestSetPreference,
-  requestShowRequireRestartDialog,
+  requestShowMessageBox,
+  requestOpenInstallLocation,
 } from '../../../senders';
 
 const styles = theme => ({
@@ -64,7 +66,14 @@ const getThemeString = (theme) => {
   return 'Automatic';
 };
 
-const Preferences = ({ theme, classes, errorMonitoring }) => (
+const getInstallLocationString = (installLocation) => {
+  if (installLocation === 'root') return '/Applications/WebCatalog Apps';
+  return '~/Applications/WebCatalog Apps';
+};
+
+const Preferences = ({
+  theme, classes, installLocation, installingAppCount,
+}) => (
   <div className={classes.root}>
     <AppBar position="static" className={classes.appBar} elevation={2}>
       <Toolbar variant="dense">
@@ -76,7 +85,7 @@ const Preferences = ({ theme, classes, errorMonitoring }) => (
     <div className={classes.scrollContainer}>
       <div className={classes.inner}>
         <Typography variant="subtitle2" className={classes.sectionTitle}>
-          General
+          Appearance
         </Typography>
         <Paper className={classes.paper}>
           <List dense>
@@ -101,22 +110,44 @@ const Preferences = ({ theme, classes, errorMonitoring }) => (
         </Typography>
         <Paper className={classes.paper}>
           <List dense>
-            <ListItem>
-              <ListItemText primary="Send error monitoring data" />
-              <Switch
-                checked={errorMonitoring}
-                onChange={(e) => {
-                  requestSetPreference('errorMonitoring', e.target.checked);
-                  requestShowRequireRestartDialog();
-                }}
-                classes={{
-                  switchBase: classes.switchBase,
-                }}
-              />
-            </ListItem>
-            <Divider />
             <ListItem button onClick={() => requestOpenInBrowser('https://getwebcatalog.com/privacy')}>
               <ListItemText primary="Privacy Policy" />
+            </ListItem>
+          </List>
+        </Paper>
+
+        <Typography variant="subtitle2" className={classes.sectionTitle}>
+          Advanced
+        </Typography>
+        <Paper className={classes.paper}>
+          <List dense>
+            {installingAppCount > 0 ? (
+              <ListItem
+                button
+                onClick={() => {
+                  requestShowMessageBox('This preference cannot be changed when installing or updating apps.');
+                }}
+              >
+                <ListItemText primary="Installation path" secondary={getInstallLocationString(installLocation)} />
+                <ChevronRightIcon color="action" />
+              </ListItem>
+            ) : (
+              <StatedMenu
+                id="installLocation"
+                buttonElement={(
+                  <ListItem button>
+                    <ListItemText primary="Installation path" secondary={getInstallLocationString(installLocation)} />
+                    <ChevronRightIcon color="action" />
+                  </ListItem>
+                )}
+              >
+                <MenuItem onClick={() => requestSetPreference('installLocation', 'home')}>~/Applications/WebCatalog Apps (default)</MenuItem>
+                <MenuItem onClick={() => requestSetPreference('installLocation', 'root')}>/Applications/WebCatalog Apps (requires sudo)</MenuItem>
+              </StatedMenu>
+            )}
+            <Divider />
+            <ListItem button onClick={requestOpenInstallLocation}>
+              <ListItemText primary="Open installation path in Finder" />
             </ListItem>
           </List>
         </Paper>
@@ -140,12 +171,14 @@ const Preferences = ({ theme, classes, errorMonitoring }) => (
 Preferences.propTypes = {
   theme: PropTypes.string.isRequired,
   classes: PropTypes.object.isRequired,
-  errorMonitoring: PropTypes.bool.isRequired,
+  installLocation: PropTypes.string.isRequired,
+  installingAppCount: PropTypes.number.isRequired,
 };
 
 const mapStateToProps = state => ({
   theme: state.preferences.theme,
-  errorMonitoring: state.preferences.errorMonitoring,
+  installLocation: state.preferences.installLocation,
+  installingAppCount: getInstallingAppsAsList(state).length,
 });
 
 export default connectComponent(

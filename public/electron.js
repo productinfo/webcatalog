@@ -10,8 +10,6 @@ const mainWindow = require('./windows/main');
 
 // require('./libs/updater');
 
-const sentrySession = require('./libs/sentry-session');
-
 const gotTheLock = app.requestSingleInstanceLock();
 
 app.on('second-instance', () => {
@@ -28,9 +26,6 @@ if (!gotTheLock) {
   loadListeners();
 
   app.on('ready', () => {
-    // init as soon as possible
-    sentrySession.init();
-
     global.defaultIcon = path.join(app.getAppPath(), 'default-icon.png');
 
     mainWindow.create();
