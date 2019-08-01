@@ -1,4 +1,8 @@
-# WebCatalog [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0) [![Travis Build Status](https://travis-ci.com/quanglam2807/webcatalog.svg?branch=master)](https://travis-ci.com/quanglam2807/webcatalog)
+# WebCatalog [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
+
+|macOS|Linux|Windows|
+|---|---|---|
+|[![Travis Build Status](https://travis-ci.com/quanglam2807/webcatalog.svg?branch=master)](https://travis-ci.com/quanglam2807/webcatalog)|[![Travis Build Status](https://travis-ci.com/quanglam2807/webcatalog.svg?branch=master)](https://travis-ci.com/quanglam2807/webcatalog)|[![Build status](https://ci.appveyor.com/api/projects/status/nwbv85xdiq1s69pj?svg=true)](https://ci.appveyor.com/project/quanglam2807/webcatalog)|
 
 **[WebCatalog](https://getwebcatalog.com)** - Run Web Apps like Real Apps.
 
@@ -7,7 +11,7 @@
 ---
 
 ## Notes
-**WebCatalog is open-source but not free.** You can install up to two apps for free. [Pay just $19.99](https://webcatalog.onfastspring.com/webcatalog-lite) to install as many as you need.
+**WebCatalog is open-source but not free.** You can install up to two apps for free. [Pay just $9.99](https://webcatalog.onfastspring.com/webcatalog-lite) to install as many as you need.
 
 WebCatalog has permanent licenses, which have no time limit. In other words, the license never expires and works with all versions (including major updates). Also, your license permits you to use the app on all of the devices you own, as long as you are the only one using the app.
 

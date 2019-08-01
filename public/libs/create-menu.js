@@ -10,10 +10,6 @@ const sendToAllWindows = require('./send-to-all-windows');
 const { getPreference } = require('./preferences');
 
 const createMenu = () => {
-  app.setAboutPanelOptions({
-    copyright: 'Copyright © Quang Lam. All rights reserved.',
-  });
-
   const registered = getPreference('registered');
 
   const template = [
@@ -69,20 +65,27 @@ const createMenu = () => {
     template.unshift({
       label: app.getName(),
       submenu: [
-        { role: 'about' },
+        {
+          label: 'About',
+          click: () => sendToAllWindows('open-dialog-about'),
+        },
         { type: 'separator' },
         {
           label: registered ? 'Registered' : 'Registration...',
           enabled: !registered,
           click: registered ? null : () => sendToAllWindows('open-license-registration-dialog'),
         },
-        { type: 'separator' },
+        {
+          type: 'separator',
+          visible: process.env.SNAP != null,
+        },
         {
           label: 'Check for Updates...',
           click: () => {
             global.updateSilent = false;
             autoUpdater.checkForUpdates();
           },
+          visible: process.env.SNAP != null,
         },
         { type: 'separator' },
         {
@@ -109,6 +112,39 @@ const createMenu = () => {
       { type: 'separator' },
       { role: 'front' },
     ];
+  } else {
+    // File menu for Windows & Linux
+    template.unshift({
+      label: 'File',
+      submenu: [
+        {
+          role: 'about',
+          click: () => sendToAllWindows('open-dialog-about'),
+        },
+        { type: 'separator' },
+        {
+          label: registered ? 'Registered' : 'Registration...',
+          enabled: !registered,
+          click: registered ? null : () => sendToAllWindows('open-license-registration-dialog'),
+        },
+        { type: 'separator' },
+        {
+          label: 'Check for Updates...',
+          click: () => {
+            global.updateSilent = false;
+            autoUpdater.checkForUpdates();
+          },
+        },
+        { type: 'separator' },
+        {
+          label: 'Preferences...',
+          accelerator: 'Ctrl+,',
+          click: () => sendToAllWindows('go-to-preferences'),
+        },
+        { type: 'separator' },
+        { role: 'quit', label: 'Exit' },
+      ],
+    });
   }
 
   const menu = Menu.buildFromTemplate(template);

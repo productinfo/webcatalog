@@ -1,5 +1,4 @@
 const {
-  app,
   Menu,
   clipboard,
   shell,
@@ -8,6 +7,7 @@ const {
 
 const appJson = require('../app.json');
 
+const aboutWindow = require('../windows/about');
 const mainWindow = require('../windows/main');
 const preferencesWindow = require('../windows/preferences');
 const editWorkspaceWindow = require('../windows/edit-workspace');
@@ -38,52 +38,7 @@ const {
 const FIND_IN_PAGE_HEIGHT = 42;
 
 function createMenu() {
-  app.setAboutPanelOptions({
-    credits: 'Powered by WebCatalog.',
-  });
-
   const template = [
-    {
-      label: appJson.name,
-      submenu: [
-        { role: 'about' },
-        {
-          label: 'Check for Updates...',
-          click: () => checkForUpdates(),
-        },
-        { type: 'separator' },
-        {
-          label: 'Preferences...',
-          accelerator: 'Cmd+,',
-          click: () => preferencesWindow.show(),
-        },
-        { type: 'separator' },
-        {
-          label: 'Clear Browsing Data...',
-          accelerator: 'CmdOrCtrl+Shift+Delete',
-          click: () => {
-            dialog.showMessageBox(preferencesWindow.get() || mainWindow.get(), {
-              type: 'question',
-              buttons: ['Clear Now', 'Cancel'],
-              message: 'Are you sure? All browsing data will be cleared. This action cannot be undone.',
-              cancelId: 1,
-            }, (response) => {
-              if (response === 0) {
-                clearBrowsingData();
-              }
-            });
-          },
-        },
-        { type: 'separator' },
-        { role: 'services', submenu: [] },
-        { type: 'separator' },
-        { role: 'hide' },
-        { role: 'hideothers' },
-        { role: 'unhide' },
-        { type: 'separator' },
-        { role: 'quit' },
-      ],
-    },
     {
       label: 'Edit',
       submenu: [
@@ -108,12 +63,15 @@ function createMenu() {
               const contentSize = win.getContentSize();
               const view = win.getBrowserView();
 
+              const offsetTitlebar = process.platform !== 'darwin' || global.showSidebar || global.attachToMenubar ? 0 : 22;
+              const x = global.showSidebar ? 68 : 0;
+              const y = global.showNavigationBar ? 36 + offsetTitlebar : 0 + offsetTitlebar;
+
               view.setBounds({
-                x: global.showSidebar ? 68 : 0,
-                y: global.showNavigationBar ? FIND_IN_PAGE_HEIGHT + 36 : FIND_IN_PAGE_HEIGHT,
-                height: global.showNavigationBar ? contentSize[1] - FIND_IN_PAGE_HEIGHT - 36
-                  : contentSize[1] - FIND_IN_PAGE_HEIGHT,
-                width: global.showSidebar ? contentSize[0] - 68 : contentSize[0],
+                x,
+                y: y + FIND_IN_PAGE_HEIGHT,
+                height: contentSize[1] - y - FIND_IN_PAGE_HEIGHT,
+                width: contentSize[0] - x,
               });
             }
           },
@@ -194,7 +152,7 @@ function createMenu() {
         },
         { type: 'separator' },
         {
-          label: 'Developer Tools',
+          label: ' Tools',
           submenu: [
             {
               label: 'Window',
@@ -305,6 +263,92 @@ function createMenu() {
       ],
     },
   ];
+
+  if (process.platform === 'darwin') {
+    template.unshift({
+      label: appJson.name,
+      submenu: [
+        {
+          label: 'About',
+          click: () => aboutWindow.show(),
+        },
+        {
+          label: 'Check for Updates...',
+          click: () => checkForUpdates(),
+        },
+        { type: 'separator' },
+        {
+          label: 'Preferences...',
+          accelerator: 'Cmd+,',
+          click: () => preferencesWindow.show(),
+        },
+        { type: 'separator' },
+        {
+          label: 'Clear Browsing Data...',
+          accelerator: 'CmdOrCtrl+Shift+Delete',
+          click: () => {
+            dialog.showMessageBox(preferencesWindow.get() || mainWindow.get(), {
+              type: 'question',
+              buttons: ['Clear Now', 'Cancel'],
+              message: 'Are you sure? All browsing data will be cleared. This action cannot be undone.',
+              cancelId: 1,
+            }, (response) => {
+              if (response === 0) {
+                clearBrowsingData();
+              }
+            });
+          },
+        },
+        { type: 'separator' },
+        { role: 'services', submenu: [] },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideothers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    });
+  } else {
+    template.unshift({
+      label: 'File',
+      submenu: [
+        {
+          label: 'About',
+          click: () => aboutWindow.show(),
+        },
+        {
+          label: 'Check for Updates...',
+          click: () => checkForUpdates(),
+        },
+        { type: 'separator' },
+        {
+          label: 'Preferences...',
+          accelerator: 'Ctrl+,',
+          click: () => preferencesWindow.show(),
+        },
+        { type: 'separator' },
+        {
+          label: 'Clear Browsing Data...',
+          accelerator: 'CmdOrCtrl+Shift+Delete',
+          click: () => {
+            dialog.showMessageBox(preferencesWindow.get() || mainWindow.get(), {
+              type: 'question',
+              buttons: ['Clear Now', 'Cancel'],
+              message: 'Are you sure? All browsing data will be cleared. This action cannot be undone.',
+              cancelId: 1,
+            }, (response) => {
+              if (response === 0) {
+                clearBrowsingData();
+              }
+            });
+          },
+        },
+        { type: 'separator' },
+        { role: 'quit', label: 'Exit' },
+      ],
+    });
+  }
 
   Object.values(getWorkspaces())
     .sort((a, b) => a.order - b.order)

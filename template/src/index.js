@@ -8,12 +8,14 @@ import 'typeface-roboto/index.css';
 
 import store from './state';
 
+import About from './components/about';
 import AppWrapper from './components/app-wrapper';
+import Auth from './components/auth';
 import CodeInjection from './components/code-injection';
 import EditWorkspace from './components/edit-workspace';
+import Main from './components/main';
 import OpenUrlWith from './components/open-url-with';
 import Preferences from './components/preferences';
-import Main from './components/main';
 
 import { getWorkspace } from './senders';
 
@@ -41,12 +43,22 @@ const runApp = () => {
       App = CodeInjection;
       break;
     }
+    case 'auth': {
+      App = Auth;
+      break;
+    }
+    case 'about': {
+      App = About;
+      break;
+    }
     default: {
       App = Main;
     }
   }
 
-  if (window.mode === 'preferences') {
+  if (window.mode === 'about') {
+    document.title = 'About';
+  } else if (window.mode === 'preferences') {
     document.title = 'Preferences';
   } else if (window.mode === 'edit-workspace') {
     const workspace = getWorkspace(window.require('electron').remote.getGlobal('editWorkspaceId'));
@@ -56,6 +68,8 @@ const runApp = () => {
   } else if (window.mode === 'code-injection') {
     const codeInjectionType = window.require('electron').remote.getGlobal('codeInjectionType');
     document.title = `Edit ${codeInjectionType.toUpperCase()} Code Injection`;
+  } else if (window.mode === 'code-injection') {
+    document.title = 'Sign in';
   } else {
     document.title = remote.getGlobal('appJson').name;
   }

@@ -17,13 +17,13 @@ const defaultPreferences = {
   sidebar: Boolean(appJson.mailtoHandler),
   spellChecker: true,
   swipeToNavigate: true,
-  theme: 'automatic',
+  theme: process.platform === 'darwin' ? 'automatic' : 'light',
   unreadCountBadge: true,
 };
 
-const getPreferences = () => Object.assign({}, defaultPreferences, settings.get(`preferences.${v}`, defaultPreferences));
+const getPreferences = () => Object.assign({}, defaultPreferences, settings.get(`preferences.${v}`));
 
-const getPreference = name => settings.get(`preferences.${v}.${name}`, defaultPreferences[name]);
+const getPreference = name => settings.get(`preferences.${v}.${name}`) || defaultPreferences[name];
 
 const setPreference = (name, value) => {
   settings.set(`preferences.${v}.${name}`, value);

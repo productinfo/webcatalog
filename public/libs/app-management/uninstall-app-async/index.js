@@ -2,7 +2,6 @@ const path = require('path');
 const { fork } = require('child_process');
 const { app } = require('electron');
 
-const getInstallationPath = require('../get-installation-path');
 const { getPreference } = require('./../../preferences');
 
 const uninstallAppAsync = (id, name) => new Promise((resolve, reject) => {
@@ -15,10 +14,12 @@ const uninstallAppAsync = (id, name) => new Promise((resolve, reject) => {
     name,
     '--homePath',
     app.getPath('home'),
-    '--installLocation',
-    getPreference('installLocation'),
+    '--desktopPath',
+    app.getPath('desktop'),
     '--installationPath',
-    getInstallationPath(),
+    getPreference('installationPath'),
+    '--requireAdmin',
+    getPreference('requireAdmin').toString(),
     'username',
     process.env.USER, // required by sudo-prompt
   ], {

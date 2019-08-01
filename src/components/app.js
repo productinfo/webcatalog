@@ -10,9 +10,10 @@ import Installed from './pages/installed';
 import Home from './pages/home';
 import Preferences from './pages/preferences';
 
+import DialogAbout from './dialogs/dialog-about';
 import DialogCreateCustomApp from './dialogs/dialog-create-custom-app';
 import DialogLicenseRegistration from './dialogs/dialog-license-registration';
-import DialogMovingAllApps from './dialogs/dialog-moving-all-apps';
+import DialogSetInstallationPath from './dialogs/dialog-set-installation-path';
 
 import { ROUTE_PREFERENCES, ROUTE_INSTALLED } from '../constants/routes';
 import { requestGetInstalledApps } from '../senders';
@@ -57,9 +58,10 @@ class App extends React.Component {
         {!isFullScreen && <FakeTitleBar />}
         {pageContent}
         <EnhancedBottomNavigation />
+        <DialogAbout />
         <DialogCreateCustomApp />
         <DialogLicenseRegistration />
-        <DialogMovingAllApps />
+        <DialogSetInstallationPath />
       </div>
     );
   }

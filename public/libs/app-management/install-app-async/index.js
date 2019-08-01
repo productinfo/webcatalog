@@ -18,10 +18,18 @@ const installAppAsync = (id, name, url, icon, mailtoHandler) => new Promise((res
     icon,
     '--homePath',
     app.getPath('home'),
-    '--installLocation',
-    getPreference('installLocation'),
-    'username',
-    process.env.USER, // required by sudo-prompt
+    '--desktopPath',
+    app.getPath('desktop'),
+    '--installationPath',
+    getPreference('installationPath'),
+    '--requireAdmin',
+    getPreference('requireAdmin').toString(),
+    '--username',
+    process.env.USER, // required by sudo-prompt,
+    '--createDesktopShortcut',
+    getPreference('createDesktopShortcut'),
+    '--createStartMenuShortcut',
+    getPreference('createStartMenuShortcut'),
   ];
 
   if (mailtoHandler && mailtoHandler.length > 0) {
@@ -35,6 +43,7 @@ const installAppAsync = (id, name, url, icon, mailtoHandler) => new Promise((res
     env: {
       ELECTRON_RUN_AS_NODE: 'true',
       ELECTRON_NO_ASAR: 'true',
+      APPDATA: app.getPath('appData'),
     },
   });
 

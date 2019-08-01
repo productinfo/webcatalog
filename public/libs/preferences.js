@@ -1,29 +1,62 @@
+const { app } = require('electron');
 const settings = require('electron-settings');
+const path = require('path');
 
 const sendToAllWindows = require('../libs/send-to-all-windows');
-
-const moveAllAppsAsync = require('../libs/app-management/move-all-apps-async');
 
 // scope
 const v = '2018';
 
-const defaultPreferences = {
-  theme: 'automatic',
-  registered: false,
-  installLocation: 'home',
+const getDefaultInstallationPath = () => {
+  if (process.platform === 'darwin') {
+    return '~/Applications/WebCatalog Apps';
+  }
+  if (process.platform === 'linux') {
+    return '~/.webcatalog';
+  }
+  if (process.platform === 'win32') {
+    return path.join(app.getPath('home'), 'WebCatalog Apps');
+  }
+  throw Error('Unsupported platform');
 };
 
-const getPreferences = () => Object.assign({}, defaultPreferences, settings.get(`preferences.${v}`, defaultPreferences));
+const defaultPreferences = {
+  theme: process.platform === 'darwin' ? 'automatic' : 'light',
+  registered: false,
+  installationPath: getDefaultInstallationPath(),
+  requireAdmin: false,
+  createDesktopShortcut: true,
+  createStartMenuShortcut: true,
+};
 
-const getPreference = name => settings.get(`preferences.${v}.${name}`, defaultPreferences[name]);
+const getPreferences = () => Object.assign({}, defaultPreferences, settings.get(`preferences.${v}`));
+
+const getPreference = (name) => {
+  // ensure compatiblity with old version
+  if (process.platform === 'darwin' && (name === 'installationPath' || name === 'requireAdmin')) {
+    // old pref, home or root
+    if (settings.get('preferences.2018.installLocation') === 'root') {
+      settings.delete('preferences.2018.installLocation');
+
+      settings.set(`preferences.${v}.installationPath`, '/Applications/WebCatalog Apps');
+      sendToAllWindows('set-preference', 'installationPath', '/Applications/WebCatalog Apps');
+
+      settings.set(`preferences.${v}.requireAdmin`, true);
+      sendToAllWindows('set-preference', 'requireAdmin', true);
+
+      if (name === 'installationPath') {
+        return '/Applications/WebCatalog Apps';
+      }
+      return true;
+    }
+  }
+
+  return settings.get(`preferences.${v}.${name}`) || defaultPreferences[name];
+};
 
 const setPreference = (name, value) => {
   settings.set(`preferences.${v}.${name}`, value);
   sendToAllWindows('set-preference', name, value);
-
-  if (name === 'installLocation') {
-    moveAllAppsAsync(value === 'home' ? 'root' : 'home');
-  }
 };
 
 const resetPreferences = () => {

@@ -1,7 +1,8 @@
 ---
 name: Twitter
 category: Social Networking
-title: Twitter for macOS on WebCatalog
+featured: true
+title: 'Twitter for macOS, Windows & Linux on WebCatalog'
 key: twitter
 fullUrl: 'https://twitter.com/'
 hostname: twitter.com

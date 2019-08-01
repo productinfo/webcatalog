@@ -1,9 +1,9 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-const { app, protocol } = require('electron');
-const path = require('path');
+const { app, protocol, ipcMain } = require('electron');
 
 const loadListeners = require('./listeners');
 
+const authWindow = require('./windows/auth');
 const mainWindow = require('./windows/main');
 const openUrlWithWindow = require('./windows/open-url-with');
 
@@ -38,27 +38,24 @@ if (!gotTheLock) {
 
   loadListeners();
 
-  const WIDEVINE_PATH = path.join(__dirname, 'plugins', 'WidevineCdm', '_platform_specific', 'mac_x64').replace('app.asar', 'app.asar.unpacked');
-  const WIDEVINE_VERSION = '4.10.1192.0';
-  app.commandLine.appendSwitch('widevine-cdm-path', WIDEVINE_PATH);
-  app.commandLine.appendSwitch('widevine-cdm-version', WIDEVINE_VERSION);
-
   const commonInit = () => {
-    mainWindow.create();
+    mainWindow.createAsync()
+      .then(() => {
+        createMenu();
 
-    createMenu();
+        const workspaceObjects = getWorkspaces();
 
-    const workspaceObjects = getWorkspaces();
-
-    Object.keys(workspaceObjects).forEach((id) => {
-      const workspace = workspaceObjects[id];
-      addView(mainWindow.get(), workspace);
-    });
+        Object.keys(workspaceObjects).forEach((id) => {
+          const workspace = workspaceObjects[id];
+          addView(mainWindow.get(), workspace);
+        });
+      });
   };
 
   app.on('ready', () => {
     global.appJson = appJson;
 
+    global.attachToMenubar = getPreference('attachToMenubar');
     global.showSidebar = getPreference('sidebar');
     global.showNavigationBar = getPreference('navigationBar');
 
@@ -97,5 +94,25 @@ if (!gotTheLock) {
 
     app.whenReady()
       .then(() => openUrlWithWindow.show(url));
+  });
+
+  app.on('login', (e, webContents, request, authInfo, callback) => {
+    e.preventDefault();
+    const sessId = String(Date.now());
+    authWindow.show(sessId, request.url);
+
+    const listener = (ee, id, success, username, password) => {
+      if (id !== sessId) return;
+
+      if (success) {
+        callback(username, password);
+      } else {
+        callback();
+      }
+
+      ipcMain.removeListener('continue-auth', listener);
+    };
+
+    ipcMain.on('continue-auth', listener);
   });
 }

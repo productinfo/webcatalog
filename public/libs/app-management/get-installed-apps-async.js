@@ -1,7 +1,8 @@
+const { app } = require('electron');
 const path = require('path');
 const fsExtra = require('fs-extra');
 
-const getInstallationPath = require('./get-installation-path');
+const { getPreference } = require('../preferences');
 const sendToAllWindows = require('../send-to-all-windows');
 
 const getInstalledAppsAsync = () => {
@@ -9,7 +10,7 @@ const getInstalledAppsAsync = () => {
 
   const apps = [];
 
-  const installationPath = getInstallationPath();
+  const installationPath = getPreference('installationPath').replace('~', app.getPath('home'));
 
   return Promise.resolve()
     .then(() => {
@@ -19,13 +20,17 @@ const getInstalledAppsAsync = () => {
             files.forEach((fileName) => {
               if (fileName === '.DS_Store') return;
 
-              const packageJsonPath = path.join(installationPath, fileName, 'Contents', 'Resources', 'app.asar.unpacked', 'package.json');
+              const resourcesPath = process.platform === 'darwin'
+                ? path.join(installationPath, fileName, 'Contents', 'Resources')
+                : path.join(installationPath, fileName, 'resources');
 
-              const legacyAppJsonPath = path.join(installationPath, fileName, 'Contents', 'Resources', 'app.asar.unpacked', 'public', 'app.json');
-              const legacyIconPath = path.join(installationPath, fileName, 'Contents', 'Resources', 'app.asar.unpacked', 'public', 'icon.png');
+              const packageJsonPath = path.join(resourcesPath, 'app.asar.unpacked', 'package.json');
 
-              const appJsonPath = path.join(installationPath, fileName, 'Contents', 'Resources', 'app.asar.unpacked', 'build', 'app.json');
-              const iconPath = path.join(installationPath, fileName, 'Contents', 'Resources', 'app.asar.unpacked', 'build', 'icon.png');
+              const legacyAppJsonPath = path.join(resourcesPath, 'app.asar.unpacked', 'public', 'app.json');
+              const legacyIconPath = path.join(resourcesPath, 'app.asar.unpacked', 'public', 'icon.png');
+
+              const appJsonPath = path.join(resourcesPath, 'app.asar.unpacked', 'build', 'app.json');
+              const iconPath = path.join(resourcesPath, 'app.asar.unpacked', 'build', 'icon.png');
 
               let packageJson;
               let appJson;

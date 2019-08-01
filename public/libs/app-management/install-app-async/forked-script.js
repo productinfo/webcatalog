@@ -9,6 +9,7 @@ const download = require('download');
 const tmp = require('tmp');
 const decompress = require('decompress');
 const sudo = require('sudo-prompt');
+const ws = require('windows-shortcuts');
 
 const {
   id,
@@ -17,36 +18,52 @@ const {
   icon,
   mailtoHandler,
   homePath,
-  installLocation,
+  desktopPath,
+  installationPath,
+  requireAdmin,
   username,
+  createDesktopShortcut,
+  createStartMenuShortcut,
 } = argv;
 
-const templatePath = path.resolve(__dirname, '..', '..', '..', '..', 'template.tar.gz');
+const templatePath = path.resolve(__dirname, '..', '..', '..', '..', 'template.zip');
 
 const tmpObj = tmp.dirSync();
 const tmpPath = tmpObj.name;
 const appPath = path.join(tmpPath, 'template');
 const buildResourcesPath = path.join(tmpPath, 'build-resources');
-const iconIcnsPath = path.join(buildResourcesPath, 'icon.icns');
-const iconPngPath = path.join(buildResourcesPath, 'icon.png');
+const iconIcnsPath = path.join(buildResourcesPath, 'e.icns');
+const iconPngPath = path.join(buildResourcesPath, 'e.png');
+const iconIcoPath = path.join(buildResourcesPath, 'e.ico');
 const appJsonPath = path.join(appPath, 'build', 'app.json');
 const publicIconPngPath = path.join(appPath, 'build', 'icon.png');
+const publicIconIcoPath = path.join(appPath, 'build', 'icon.ico');
 const packageJsonPath = path.join(appPath, 'package.json');
 const outputPath = path.join(tmpPath, 'dist');
 
 const menubarIconPath = path.join(appPath, 'build', 'menubar-icon.png');
 const menubarIcon2xPath = path.join(appPath, 'build', 'menubar-icon@2x.png');
 
-const dotAppPath = path.join(outputPath, `${name}-darwin-x64`, `${name}.app`);
+const getDotAppPath = () => {
+  if (process.platform === 'darwin') {
+    return path.join(outputPath, `${name}-darwin-x64`, `${name}.app`);
+  }
+  if (process.platform === 'linux') {
+    return path.join(outputPath, `${name}-linux-x64`);
+  }
+  if (process.platform === 'win32') {
+    return path.join(outputPath, `${name}-win32-x64`);
+  }
+  throw Error('Unsupported platform');
+};
 
-let allAppsPath = path.join(homePath, 'Applications', 'WebCatalog Apps');
-if (installLocation === 'root') {
-  allAppsPath = path.join('/', 'Applications', 'WebCatalog Apps');
-}
+const dotAppPath = getDotAppPath();
 
-const finalPath = path.join(allAppsPath, `${name}.app`);
+const allAppsPath = installationPath.replace('~', homePath);
 
-const sizes = [16, 32, 64, 128, 256, 512, 1024];
+const finalPath = process.platform === 'darwin'
+  ? path.join(allAppsPath, `${name}.app`)
+  : path.join(allAppsPath, name);
 
 const sudoAsync = prompt => new Promise((resolve, reject) => {
   const opts = {
@@ -65,11 +82,24 @@ const sudoAsync = prompt => new Promise((resolve, reject) => {
   });
 });
 
+const createShortcutAsync = (shortcutPath, opts) => {
+  if (process.platform !== 'win32') {
+    return Promise.reject(new Error('Platform is not supported'));
+  }
+
+  return new Promise((resolve, reject) => {
+    ws.create(shortcutPath, opts, (err) => {
+      if (err) { return reject(err); }
+      return resolve();
+    });
+  });
+};
+
 decompress(templatePath, tmpPath)
   .then(() => {
     if (isUrl(icon)) {
       return download(icon, buildResourcesPath, {
-        filename: 'icon.png',
+        filename: 'e.png',
       });
     }
 
@@ -77,40 +107,61 @@ decompress(templatePath, tmpPath)
   })
   .then(() => Jimp.read(iconPngPath))
   .then((img) => {
-    const p = sizes.map(size => new Promise((resolve) => {
-      img
-        .clone()
-        .resize(size, size)
-        .quality(100)
-        .write(path.join(buildResourcesPath, `${size}.png`), resolve);
-    }));
+    const sizes = process.platform === 'darwin'
+      ? [16, 32, 64, 128, 256, 512, 1024]
+      : [16, 24, 32, 48, 64, 128, 256];
+
+    const p = (process.platform === 'darwin' || process.platform === 'win32')
+      ? sizes.map(size => new Promise((resolve) => {
+        img
+          .clone()
+          .resize(size, size)
+          .quality(100)
+          .write(path.join(buildResourcesPath, `${size}.png`), resolve);
+      })) : [];
 
     // menubar icon
-    p.push(new Promise((resolve) => {
-      img
-        .clone()
-        .resize(20, 20)
-        .quality(100)
-        .write(menubarIconPath, resolve);
-    }));
-    p.push(new Promise((resolve) => {
-      img
-        .clone()
-        .resize(40, 40)
-        .quality(100)
-        .write(menubarIcon2xPath, resolve);
-    }));
+    if (process.platform === 'darwin') {
+      p.push(new Promise((resolve) => {
+        img
+          .clone()
+          .resize(20, 20)
+          .quality(100)
+          .write(menubarIconPath, resolve);
+      }));
+      p.push(new Promise((resolve) => {
+        img
+          .clone()
+          .resize(40, 40)
+          .quality(100)
+          .write(menubarIcon2xPath, resolve);
+      }));
+    }
 
-    return Promise.all(p);
+    return Promise.all(p)
+      .then(() => {
+        if (process.platform === 'darwin') {
+          return icongen(buildResourcesPath, buildResourcesPath, {
+            report: true,
+            icns: {
+              name: 'e',
+              sizes,
+            },
+          });
+        }
+        if (process.platform === 'win32') {
+          return icongen(buildResourcesPath, buildResourcesPath, {
+            report: true,
+            ico: {
+              name: 'e',
+              sizes,
+            },
+          })
+            .then(() => fsExtra.copy(iconIcoPath, publicIconIcoPath));
+        }
+        return null;
+      });
   })
-  .then(() => icongen(buildResourcesPath, buildResourcesPath, {
-    report: true,
-    icns: {
-      name: 'icon',
-      sizes,
-    },
-  }))
-  .then(results => results[0])
   .then(() => fsExtra.copy(iconPngPath, publicIconPngPath))
   .then(() => {
     const appJson = JSON.stringify({
@@ -128,18 +179,22 @@ decompress(templatePath, tmpPath)
     return fsExtra.writeJSON(packageJsonPath, newPackageJson);
   })
   .then(() => {
+    let optsIconPath = iconPngPath;
+    if (process.platform === 'darwin') optsIconPath = iconIcnsPath;
+    if (process.platform === 'win32') optsIconPath = iconIcoPath;
+
     const opts = {
       name,
       appBundleId: `com.webcatalog.juli.${id}`,
-      icon: iconIcnsPath,
-      platform: 'darwin',
+      icon: optsIconPath,
+      platform: process.platform,
       dir: appPath,
       out: outputPath,
       overwrite: true,
       prune: true,
       osxSign: false,
       asar: {
-        unpack: '{app.json,icon.png,package.json,libwidevinecdm.dylib,libwidevinecdm.dylib.sig,manifest.json}',
+        unpack: '{app.json,icon.png,package.json,manifest.json}',
       },
     };
 
@@ -164,22 +219,68 @@ decompress(templatePath, tmpPath)
     return packager(opts);
   })
   .then(() => {
-    if (installLocation === 'root') {
+    if (requireAdmin === 'true') {
       return sudoAsync(`mkdir -p "${allAppsPath}" && rm -rf "${finalPath}" && mv "${dotAppPath}" "${finalPath}"`);
     }
-
     return fsExtra.move(dotAppPath, finalPath, { overwrite: true });
+  })
+  .then(() => {
+    // create desktop file for linux
+    if (process.platform === 'linux') {
+      const execFilePath = path.join(finalPath, name);
+      const iconPath = path.join(finalPath, 'resources', 'app.asar.unpacked', 'build', 'icon.png');
+      const desktopFilePath = path.join(homePath, '.local', 'share', 'applications', `webcatalog-${id}.desktop`);
+      const desktopFileContent = `[Desktop Entry]
+      Version=1.0
+      Type=Application
+      Name=${name}
+      GenericName=${name}
+      Icon=${iconPath}
+      Exec=${execFilePath}
+      Terminal=false;
+      `;
+      return fsExtra.writeFileSync(desktopFilePath, desktopFileContent);
+    }
+
+    if (process.platform === 'win32') {
+      const exePath = path.join(finalPath, `${name}.exe`);
+      const opts = {
+        target: exePath,
+        args: '',
+        icon: publicIconIcoPath,
+      };
+      const startMenuPath = path.join(homePath, 'AppData', 'Roaming', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'WebCatalog Apps');
+      const startMenuShortcutPath = path.join(startMenuPath, `${name}.lnk`);
+      const desktopShortcutPath = path.join(desktopPath, `${name}.lnk`);
+
+      const p = [];
+
+      if (createDesktopShortcut) {
+        p.push(createShortcutAsync(desktopShortcutPath, opts));
+      }
+
+      if (createStartMenuShortcut) {
+        p.push(fsExtra.ensureDir(startMenuPath)
+          .then(() => createShortcutAsync(startMenuShortcutPath, opts)));
+      }
+
+      return Promise.all(p);
+    }
+    return null;
   })
   .then(() => {
     process.exit(0);
   })
   .catch((e) => {
     /* eslint-disable-next-line */
+    console.log(e);
     process.send(e);
     process.exit(1);
   });
 
 process.on('uncaughtException', (e) => {
+  /* eslint-disable-next-line */
+  console.log(e);
   process.exit(1);
   process.send(e);
 });
