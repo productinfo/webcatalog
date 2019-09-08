@@ -1,5 +1,9 @@
+const { app } = require('electron');
+const path = require('path');
+const fsExtra = require('fs-extra');
 const settings = require('electron-settings');
 const uuidv1 = require('uuid/v1');
+const Jimp = require('jimp');
 
 const sendToAllWindows = require('../libs/send-to-all-windows');
 
@@ -32,7 +36,7 @@ const getWorkspacesAsList = () => {
   return workspaceLst;
 };
 
-const getWorkspace = id => workspaces[id];
+const getWorkspace = (id) => workspaces[id];
 
 const getPreviousWorkspace = (id) => {
   const workspaceLst = getWorkspacesAsList();
@@ -94,18 +98,18 @@ const createWorkspace = (active) => {
   return newWorkspace;
 };
 
-const getActiveWorkspace = () => Object.values(workspaces).find(workspace => workspace.active);
+const getActiveWorkspace = () => Object.values(workspaces).find((workspace) => workspace.active);
 
 const setActiveWorkspace = (id) => {
   // deactive the current one
-  const currentActiveWorkspace = Object.assign({}, getActiveWorkspace());
+  const currentActiveWorkspace = { ...getActiveWorkspace() };
   currentActiveWorkspace.active = false;
   workspaces[currentActiveWorkspace.id] = currentActiveWorkspace;
   sendToAllWindows('set-workspace', currentActiveWorkspace.id, currentActiveWorkspace);
   settings.set(`workspaces.${v}.${currentActiveWorkspace.id}`, currentActiveWorkspace);
 
   // active new one
-  const newActiveWorkspace = Object.assign({}, workspaces[id]);
+  const newActiveWorkspace = { ...workspaces[id] };
   newActiveWorkspace.active = true;
   workspaces[id] = newActiveWorkspace;
   sendToAllWindows('set-workspace', id, newActiveWorkspace);
@@ -113,10 +117,51 @@ const setActiveWorkspace = (id) => {
 };
 
 const setWorkspace = (id, opts) => {
-  const workspace = Object.assign({}, workspaces[id], opts);
+  const workspace = { ...workspaces[id], ...opts };
   workspaces[id] = workspace;
   sendToAllWindows('set-workspace', id, workspace);
   settings.set(`workspaces.${v}.${id}`, workspace);
+};
+
+const setWorkspacePicture = (id, sourcePicturePath) => {
+  const workspace = getWorkspace(id);
+  const pictureId = uuidv1();
+
+  if (workspace.picturePath === sourcePicturePath) {
+    return;
+  }
+
+  const destPicturePath = path.join(app.getPath('userData'), 'pictures', `${pictureId}.png`);
+
+  Jimp.read(sourcePicturePath)
+    .then((img) => new Promise((resolve) => {
+      img.clone()
+        .resize(128, 128)
+        .quality(100)
+        .write(destPicturePath, resolve);
+    }))
+    .then(() => {
+      const currentPicturePath = getWorkspace(id).picturePath;
+      setWorkspace(id, {
+        pictureId,
+        picturePath: destPicturePath,
+      });
+      return fsExtra.remove(currentPicturePath);
+    });
+};
+
+const removeWorkspacePicture = (id) => {
+  const workspace = getWorkspace(id);
+  if (workspace.picturePath) {
+    return fsExtra.remove(workspace.picturePath)
+      .then(() => {
+        setWorkspace(id, {
+          pictureId: null,
+          picturePath: null,
+        });
+      });
+  }
+  return Promise.resolve();
 };
 
 const removeWorkspace = (id) => {
@@ -137,4 +182,6 @@ module.exports = {
   removeWorkspace,
   setActiveWorkspace,
   setWorkspace,
+  setWorkspacePicture,
+  removeWorkspacePicture,
 };

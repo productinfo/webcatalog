@@ -65,7 +65,7 @@ const finalPath = process.platform === 'darwin'
   ? path.join(allAppsPath, `${name}.app`)
   : path.join(allAppsPath, name);
 
-const sudoAsync = prompt => new Promise((resolve, reject) => {
+const sudoAsync = (prompt) => new Promise((resolve, reject) => {
   const opts = {
     name: 'WebCatalog',
   };
@@ -112,7 +112,7 @@ decompress(templatePath, tmpPath)
       : [16, 24, 32, 48, 64, 128, 256];
 
     const p = (process.platform === 'darwin' || process.platform === 'win32')
-      ? sizes.map(size => new Promise((resolve) => {
+      ? sizes.map((size) => new Promise((resolve) => {
         img
           .clone()
           .resize(size, size)
@@ -165,7 +165,7 @@ decompress(templatePath, tmpPath)
   .then(() => fsExtra.copy(iconPngPath, publicIconPngPath))
   .then(() => {
     const appJson = JSON.stringify({
-      id, name, url, mailtoHandler,
+      id, name, url, mailtoHandler, engine: 'electron',
     });
     return fsExtra.writeFileSync(appJsonPath, appJson);
   })
@@ -230,15 +230,17 @@ decompress(templatePath, tmpPath)
       const execFilePath = path.join(finalPath, name);
       const iconPath = path.join(finalPath, 'resources', 'app.asar.unpacked', 'build', 'icon.png');
       const desktopFilePath = path.join(homePath, '.local', 'share', 'applications', `webcatalog-${id}.desktop`);
+      // https://askubuntu.com/questions/722179/icon-path-in-desktop-file
+      // https://askubuntu.com/questions/189822/how-to-escape-spaces-in-desktop-files-exec-line
       const desktopFileContent = `[Desktop Entry]
-      Version=1.0
-      Type=Application
-      Name=${name}
-      GenericName=${name}
-      Icon=${iconPath}
-      Exec=${execFilePath}
-      Terminal=false;
-      `;
+Version=1.0
+Type=Application
+Name=${name}
+GenericName=${name}
+Icon=${iconPath}
+Exec="${execFilePath}"
+Terminal=false;
+`;
       return fsExtra.writeFileSync(desktopFilePath, desktopFileContent);
     }
 

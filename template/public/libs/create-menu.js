@@ -152,10 +152,36 @@ function createMenu() {
         },
         { type: 'separator' },
         {
-          label: ' Tools',
+          label: 'Developer Tools',
           submenu: [
             {
-              label: 'Window',
+              label: 'Main Window',
+              click: () => {
+                const win = mainWindow.get();
+                if (win != null) {
+                  if (win.webContents.isDevToolsOpened()) {
+                    win.webContents.closeDevTools();
+                  } else {
+                    win.webContents.openDevTools({ mode: 'detach' });
+                  }
+                }
+              },
+            },
+            {
+              label: 'Preferences Window',
+              click: () => {
+                const win = preferencesWindow.get();
+                if (win != null) {
+                  if (win.webContents.isDevToolsOpened()) {
+                    win.webContents.closeDevTools();
+                  } else {
+                    win.webContents.openDevTools({ mode: 'detach' });
+                  }
+                }
+              },
+            },
+            {
+              label: 'Main Window',
               click: () => {
                 const win = mainWindow.get();
                 if (win != null) {
@@ -269,9 +295,10 @@ function createMenu() {
       label: appJson.name,
       submenu: [
         {
-          label: 'About',
+          label: `About ${appJson.name}`,
           click: () => aboutWindow.show(),
         },
+        { type: 'separator' },
         {
           label: 'Check for Updates...',
           click: () => checkForUpdates(),

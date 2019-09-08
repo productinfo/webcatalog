@@ -20,7 +20,7 @@ const create = (id) => {
 
   win = new BrowserWindow({
     width: 400,
-    height: 300,
+    height: 400,
     resizable: false,
     maximizable: false,
     minimizable: false,
@@ -28,6 +28,7 @@ const create = (id) => {
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: true,
+      webSecurity: false,
       preload: path.join(__dirname, '..', 'preload', 'edit-workspace.js'),
     },
     parent: attachToMenubar ? null : mainWindow.get(),
@@ -37,6 +38,7 @@ const create = (id) => {
 
   win.on('closed', () => {
     win = null;
+    global.editWorkspaceId = null;
   });
 };
 

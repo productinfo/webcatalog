@@ -9,6 +9,7 @@ import Typography from '@material-ui/core/Typography';
 import SettingsIcon from '@material-ui/icons/SettingsSharp';
 
 import connectComponent from '../../helpers/connect-component';
+import getWorkspacesAsList from '../../helpers/get-workspaces-as-list';
 
 import WorkspaceSelector from './workspace-selector';
 import FindInPage from './find-in-page';
@@ -25,7 +26,7 @@ import {
 
 const { remote } = window.require('electron');
 
-const styles = theme => ({
+const styles = (theme) => ({
   outerRoot: {
     display: 'flex',
     flexDirection: 'column',
@@ -75,9 +76,6 @@ const styles = theme => ({
   },
 });
 
-const getWorkspacesAsList = workspaces => Object.values(workspaces)
-  .sort((a, b) => a.order - b.order);
-
 const Main = ({
   attachToMenubar,
   classes,
@@ -102,6 +100,8 @@ const Main = ({
                 id={workspace.id}
                 key={workspace.id}
                 name={workspace.name}
+                badgeCount={workspace.badgeCount}
+                picturePath={workspace.picturePath}
                 order={i}
                 onClick={() => requestSetActiveWorkspace(workspace.id)}
                 onContextMenu={(e) => {
@@ -173,7 +173,7 @@ Main.propTypes = {
   workspaces: PropTypes.object.isRequired,
 };
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state) => ({
   attachToMenubar: state.preferences.attachToMenubar,
   didFailLoad: state.general.didFailLoad,
   isFullScreen: state.general.isFullScreen,

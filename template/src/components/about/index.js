@@ -14,7 +14,7 @@ const { remote } = window.require('electron');
 const appVersion = remote.app.getVersion();
 const appJson = remote.getGlobal('appJson');
 
-const styles = theme => ({
+const styles = (theme) => ({
   icon: {
     height: 96,
     width: 96,
@@ -85,8 +85,8 @@ const About = (props) => {
           <span role="img" aria-label="love">❤</span>
           <span> by </span>
           <span
-            onClick={() => requestOpenInBrowser('https://github.com/quanglam2807')}
-            onKeyDown={() => requestOpenInBrowser('https://github.com/quanglam2807')}
+            onClick={() => requestOpenInBrowser('https://quanglam2807.com/')}
+            onKeyDown={() => requestOpenInBrowser('https://quanglam2807.com/')}
             role="link"
             tabIndex="0"
             className={classes.link}

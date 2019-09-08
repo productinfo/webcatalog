@@ -2,7 +2,8 @@ const { app } = require('electron');
 const settings = require('electron-settings');
 const path = require('path');
 
-const sendToAllWindows = require('../libs/send-to-all-windows');
+const sendToAllWindows = require('./send-to-all-windows');
+const isEngineInstalled = require('./is-engine-installed');
 
 // scope
 const v = '2018';
@@ -20,16 +21,25 @@ const getDefaultInstallationPath = () => {
   throw Error('Unsupported platform');
 };
 
-const defaultPreferences = {
-  theme: process.platform === 'darwin' ? 'automatic' : 'light',
-  registered: false,
-  installationPath: getDefaultInstallationPath(),
-  requireAdmin: false,
-  createDesktopShortcut: true,
-  createStartMenuShortcut: true,
+const getPreferredEngine = () => {
+  if (isEngineInstalled('chrome')) {
+    return 'chrome';
+  }
+  return 'electron';
 };
 
-const getPreferences = () => Object.assign({}, defaultPreferences, settings.get(`preferences.${v}`));
+const defaultPreferences = {
+  createDesktopShortcut: true,
+  createStartMenuShortcut: true,
+  installationPath: getDefaultInstallationPath(),
+  preferredEngine: getPreferredEngine(),
+  registered: false,
+  requireAdmin: false,
+  hideEnginePrompt: false,
+  theme: process.platform === 'darwin' ? 'automatic' : 'light',
+};
+
+const getPreferences = () => ({ ...defaultPreferences, ...settings.get(`preferences.${v}`) });
 
 const getPreference = (name) => {
   // ensure compatiblity with old version
@@ -51,7 +61,10 @@ const getPreference = (name) => {
     }
   }
 
-  return settings.get(`preferences.${v}.${name}`) || defaultPreferences[name];
+  if (settings.has(`preferences.${v}.${name}`)) {
+    return settings.get(`preferences.${v}.${name}`);
+  }
+  return defaultPreferences[name];
 };
 
 const setPreference = (name, value) => {

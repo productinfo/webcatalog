@@ -32,7 +32,7 @@ import {
 
 const { remote } = window.require('electron');
 
-const styles = theme => ({
+const styles = (theme) => ({
   root: {
     flex: 1,
     display: 'flex',
@@ -78,14 +78,34 @@ const getFileManagerName = () => {
   return 'file manager';
 };
 
+const getEngineName = (engine) => {
+  switch (engine) {
+    case 'electron': {
+      return 'Electron';
+    }
+    case 'firefox': {
+      return 'Mozilla Firefox';
+    }
+    case 'chromium': {
+      return 'Chromium';
+    }
+    default:
+    case 'chrome': {
+      return 'Google Chrome';
+    }
+  }
+};
+
 const Preferences = ({
   appCount,
   classes,
   createDesktopShortcut,
   createStartMenuShortcut,
+  hideEnginePrompt,
   installationPath,
   installingAppCount,
   onOpenDialogSetInstallationPath,
+  preferredEngine,
   requireAdmin,
   theme,
 }) => {
@@ -112,6 +132,43 @@ const Preferences = ({
       </AppBar>
       <div className={classes.scrollContainer}>
         <div className={classes.inner}>
+          <Typography variant="subtitle2" className={classes.sectionTitle}>
+            Engine
+          </Typography>
+          <Paper className={classes.paper}>
+            <List dense>
+              <StatedMenu
+                id="preferredEngine"
+                buttonElement={(
+                  <ListItem button>
+                    <ListItemText primary="Preferred engine" secondary={getEngineName(preferredEngine)} />
+                    <ChevronRightIcon color="action" />
+                  </ListItem>
+                )}
+              >
+                <MenuItem onClick={() => requestSetPreference('preferredEngine', 'chrome')}>Google Chrome (recommend)</MenuItem>
+                <MenuItem onClick={() => requestSetPreference('preferredEngine', 'chromium')}>Chromium</MenuItem>
+                <MenuItem onClick={() => requestSetPreference('preferredEngine', 'electron')}>Electron (recommend)</MenuItem>
+                <MenuItem onClick={() => requestSetPreference('preferredEngine', 'firefox')}>Mozilla Firefox</MenuItem>
+              </StatedMenu>
+              <Divider />
+              <ListItem>
+                <ListItemText
+                  primary="Ask for engine selection before every installation"
+                />
+                <Switch
+                  checked={!hideEnginePrompt}
+                  onChange={(e) => {
+                    requestSetPreference('hideEnginePrompt', !e.target.checked);
+                  }}
+                  classes={{
+                    switchBase: classes.switchBase,
+                  }}
+                />
+              </ListItem>
+            </List>
+          </Paper>
+
           <Typography variant="subtitle2" className={classes.sectionTitle}>
             Appearance
           </Typography>
@@ -152,7 +209,7 @@ const Preferences = ({
           <Paper className={classes.paper}>
             <List dense>
               {window.process.platform === 'win32' && (
-                <React.Fragment>
+                <>
                   <ListItem>
                     <ListItemText
                       primary="Automatically create desktop shortcuts for newly installed apps"
@@ -171,6 +228,7 @@ const Preferences = ({
                   <ListItem>
                     <ListItemText
                       primary="Automatically create Start Menu shortcuts for newly installed apps"
+                      secondary="This preference only works with Electron engine."
                     />
                     <Switch
                       checked={createStartMenuShortcut}
@@ -183,7 +241,7 @@ const Preferences = ({
                     />
                   </ListItem>
                   <Divider />
-                </React.Fragment>
+                </>
               )}
               {installingAppCount > 0 ? (
                 <ListItem
@@ -206,7 +264,7 @@ const Preferences = ({
                   )}
                 >
                   {window.process.platform === 'win32' && (
-                    <React.Fragment>
+                    <>
                       {(installationPath !== `${remote.app.getPath('home')}\\WebCatalog Apps`) && (
                         <MenuItem>
                           {installationPath}
@@ -219,10 +277,10 @@ const Preferences = ({
                       >
                         {`${remote.app.getPath('home')}\\WebCatalog Apps`}
                       </MenuItem>
-                    </React.Fragment>
+                    </>
                   )}
                   {window.process.platform === 'darwin' && (
-                    <React.Fragment>
+                    <>
                       {(installationPath !== '~/Applications/WebCatalog Apps' && installationPath !== '/Applications/WebCatalog Apps') && (
                         <MenuItem>
                           {installationPath}
@@ -242,10 +300,10 @@ const Preferences = ({
                       >
                         /Applications/WebCatalog Apps (requires sudo)
                       </MenuItem>
-                    </React.Fragment>
+                    </>
                   )}
                   {window.process.platform === 'linux' && (
-                    <React.Fragment>
+                    <>
                       {(installationPath !== '~/.webcatalog') && (
                         <MenuItem>
                           {installationPath}
@@ -258,7 +316,7 @@ const Preferences = ({
                       >
                         ~/.webcatalog (default)
                       </MenuItem>
-                    </React.Fragment>
+                    </>
                   )}
                   <MenuItem onClick={onOpenDialogSetInstallationPath}>
                     Custom
@@ -294,19 +352,23 @@ Preferences.propTypes = {
   classes: PropTypes.object.isRequired,
   createDesktopShortcut: PropTypes.bool.isRequired,
   createStartMenuShortcut: PropTypes.bool.isRequired,
+  hideEnginePrompt: PropTypes.bool.isRequired,
   installationPath: PropTypes.string.isRequired,
   installingAppCount: PropTypes.number.isRequired,
   onOpenDialogSetInstallationPath: PropTypes.func.isRequired,
+  preferredEngine: PropTypes.string.isRequired,
   requireAdmin: PropTypes.bool.isRequired,
   theme: PropTypes.string.isRequired,
 };
 
-const mapStateToProps = state => ({
+const mapStateToProps = (state) => ({
   appCount: getAppCount(state),
   createDesktopShortcut: state.preferences.createDesktopShortcut,
   createStartMenuShortcut: state.preferences.createStartMenuShortcut,
+  hideEnginePrompt: state.preferences.hideEnginePrompt,
   installationPath: state.preferences.installationPath,
   installingAppCount: getInstallingAppsAsList(state).length,
+  preferredEngine: state.preferences.preferredEngine,
   requireAdmin: state.preferences.requireAdmin,
   theme: state.preferences.theme,
 });

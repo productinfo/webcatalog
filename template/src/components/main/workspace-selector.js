@@ -1,10 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
+import red from '@material-ui/core/colors/red';
 
 import connectComponent from '../../helpers/connect-component';
+import getAvatarText from '../../helpers/get-avatar-text';
 
-const styles = theme => ({
+const styles = (theme) => ({
   root: {
     height: 68,
     width: 68,
@@ -20,10 +22,12 @@ const styles = theme => ({
     },
     WebkitAppRegion: 'no-drag',
     opacity: 0.8,
+    position: 'relative',
+    borderLeft: '4px solid',
+    borderColor: 'transparent',
   },
   rootActive: {
     borderColor: theme.palette.type === 'dark' ? theme.palette.common.white : theme.palette.common.black,
-    borderLeft: '4px solid',
     opacity: 1,
   },
   avatar: {
@@ -37,6 +41,11 @@ const styles = theme => ({
     fontWeight: 500,
     textTransform: 'uppercase',
   },
+  avatarPicture: {
+    height: 32,
+    width: 32,
+    borderRadius: 4,
+  },
   shortcutText: {
     marginTop: 2,
     marginBottom: 0,
@@ -45,22 +54,33 @@ const styles = theme => ({
     fontWeight: 500,
     color: theme.palette.text.primary,
   },
+  badgeCount: {
+    position: 'absolute',
+    right: 10,
+    top: 4,
+    backgroundColor: red[600],
+    height: 16,
+    width: 16,
+    borderRadius: 8,
+    fontSize: '12px',
+    lineHeight: '16px',
+    textAlign: 'center',
+    color: theme.palette.common.white,
+    paddingLeft: 1.3,
+    fontWeight: 700,
+  },
 });
-
-const getAvatarText = (id, name, order) => {
-  if (id === 'add') return '+';
-  if (name) return name[0];
-  return order + 1;
-};
 
 const WorkspaceSelector = ({
   active,
+  badgeCount,
   classes,
   id,
   name,
-  order,
   onClick,
   onContextMenu,
+  order,
+  picturePath,
 }) => (
   <div
     role="button"
@@ -71,27 +91,38 @@ const WorkspaceSelector = ({
     tabIndex="0"
   >
     <div className={classes.avatar}>
-      {getAvatarText(id, name, order)}
+      {picturePath ? (
+        <img alt="Icon" className={classes.avatarPicture} src={`file://${picturePath}`} />
+      ) : getAvatarText(id, name, order)}
     </div>
+    {badgeCount > 0 && (
+      <div className={classes.badgeCount}>
+        {badgeCount > 9 ? '*' : badgeCount}
+      </div>
+    )}
     <p className={classes.shortcutText}>{id === 'add' ? 'Add' : `⌘ + ${order + 1}`}</p>
   </div>
 );
 
 WorkspaceSelector.defaultProps = {
   active: false,
+  badgeCount: 0,
   name: null,
-  order: 0,
   onContextMenu: null,
+  order: 0,
+  picturePath: null,
 };
 
 WorkspaceSelector.propTypes = {
   active: PropTypes.bool,
+  badgeCount: PropTypes.number,
   classes: PropTypes.object.isRequired,
   id: PropTypes.string.isRequired,
   name: PropTypes.string,
-  order: PropTypes.number,
   onClick: PropTypes.func.isRequired,
   onContextMenu: PropTypes.func,
+  order: PropTypes.number,
+  picturePath: PropTypes.string,
 };
 
 export default connectComponent(

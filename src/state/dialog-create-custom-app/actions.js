@@ -8,11 +8,7 @@ import {
 import validate from '../../helpers/validate';
 import hasErrors from '../../helpers/has-errors';
 
-import { ROUTE_INSTALLED } from '../../constants/routes';
-
-import { changeRoute } from '../router/actions';
-
-import { installApp } from '../app-management/actions';
+import { open as openDialogChooseEngine } from '../dialog-choose-engine/actions';
 import {
   isNameExisted,
   getAppCount,
@@ -56,7 +52,7 @@ const getValidationRules = () => ({
   },
 });
 
-export const updateForm = changes => ({
+export const updateForm = (changes) => ({
   type: DIALOG_CREATE_CUSTOM_APP_FORM_UPDATE,
   changes: validate(changes, getValidationRules()),
 });
@@ -66,7 +62,7 @@ export const create = () => (dispatch, getState) => {
 
   const { form } = state.dialogCreateCustomApp;
 
-  const validatedChanges = validate(form, getValidationRules(getState()));
+  const validatedChanges = validate(form, getValidationRules());
   if (hasErrors(validatedChanges)) {
     return dispatch(updateForm(validatedChanges));
   }
@@ -80,9 +76,8 @@ export const create = () => (dispatch, getState) => {
     return null;
   }
 
-  dispatch(installApp(id, name, url, icon));
+  dispatch(openDialogChooseEngine(id, name, url, icon));
 
-  dispatch(changeRoute(ROUTE_INSTALLED));
   dispatch(close());
   return null;
 };

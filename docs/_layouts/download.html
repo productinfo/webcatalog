@@ -13,7 +13,7 @@ layout: default
 
       {% if page.platform == "mac" %}
       <div class="buttons is-centered">
-        <a class="button is-medium is-black" href="https://github.com/webcatalog/webcatalog/releases/download/v{{ site.webcatalog_version }}/WebCatalog-{{ site.webcatalog_version }}.dmg">
+        <a class="button is-medium is-black" href="https://github.com/quanglam2807/webcatalog/releases/download/v{{ site.webcatalog_version }}/WebCatalog-{{ site.webcatalog_version }}.dmg">
           <i class="fab fa-apple"></i>
           <span>&nbsp; Download for macOS</span>
         </a>
@@ -26,13 +26,9 @@ layout: default
       <p>Also available on <a href="/download/windows"><i class="fab fa-windows"></i> Windows</a> | <a href="/download/linux"><i class="fab fa-linux"></i> Linux</a>.</p>
       {% elsif page.platform == "linux" %}
       <div class="buttons is-centered">
-        <a class="button is-medium is-black" href="https://github.com/quanglam2807/webcatalog/releases/download/v{{ site.webcatalog_version }}/webcatalog-{{ site.webcatalog_version }}-x86_64.AppImage">
+        <a class="button is-medium is-black" href="https://github.com/quanglam2807/webcatalog/releases/download/v{{ site.webcatalog_version }}/webcatalog-{{ site.webcatalog_version }}.AppImage">
           <i class="fab fa-linux"></i>
-          <span>&nbsp; Download .AppImage</span>
-        </a>
-        <a class="button is-medium is-black" href="https://snapcraft.io/webcatalog">
-          <i class="fab fa-linux"></i>
-          <span>&nbsp; Download .Snap</span>
+          <span>&nbsp; Download AppImage</span>
         </a>
         <a class="button is-medium is-link" href="https://webcatalog.onfastspring.com/webcatalog-lite">
           <span>&nbsp; Buy Now - $9<small class="price-end">.99</small></span>
@@ -43,7 +39,7 @@ layout: default
       <p>Also available on <a href="/download/mac"><i class="fab fa-apple"></i> macOS</a> | <a href="/download/windows"><i class="fab fa-windows"></i> Windows</a>.</p>
       {% elsif page.platform == "windows" %}
       <div class="buttons is-centered">
-        <a class="button is-medium is-black" href="https://github.com/webcatalog/webcatalog/releases/download/v{{ site.webcatalog_version }}/webcatalog-setup-{{ site.webcatalog_version }}.exe">
+        <a class="button is-medium is-black" href="https://github.com/quanglam2807/webcatalog/releases/download/v{{ site.webcatalog_version }}/webcatalog-setup-{{ site.webcatalog_version }}.exe">
           <i class="fab fa-windows"></i>
           <span>&nbsp; Download for Windows</span>
         </a>
@@ -57,7 +53,7 @@ layout: default
       {% else %}
       <div id="mac">
         <div class="buttons is-centered">
-            <a class="button is-medium is-black" href="https://github.com/webcatalog/webcatalog/releases/download/v{{ site.webcatalog_version }}/WebCatalog-{{ site.webcatalog_version }}.dmg">
+            <a class="button is-medium is-black" href="https://github.com/quanglam2807/webcatalog/releases/download/v{{ site.webcatalog_version }}/WebCatalog-{{ site.webcatalog_version }}.dmg">
               <i class="fab fa-apple"></i>
               <span>&nbsp; Download for macOS</span>
             </a>
@@ -71,13 +67,9 @@ layout: default
       </div>
       <div style="display:none" id="linux" style="display:none">
         <div class="buttons is-centered">
-            <a class="button is-medium is-black" href="https://github.com/quanglam2807/webcatalog/releases/download/v{{ site.webcatalog_version }}/webcatalog-{{ site.webcatalog_version }}-x86_64.AppImage">
+            <a class="button is-medium is-black" href="https://github.com/quanglam2807/webcatalog/releases/download/v{{ site.webcatalog_version }}/webcatalog-{{ site.webcatalog_version }}.AppImage">
               <i class="fab fa-linux"></i>
-              <span>&nbsp; Download .AppImage</span>
-            </a>
-            <a class="button is-medium is-black" href="https://snapcraft.io/webcatalog">
-              <i class="fab fa-linux"></i>
-              <span>&nbsp; Download .Snap</span>
+              <span>&nbsp; Download AppImage</span>
             </a>
             <a class="button is-medium is-link" href="https://webcatalog.onfastspring.com/webcatalog-lite">
             <span>&nbsp; Buy Now - $9<small class="price-end">.99</small></span>
@@ -89,7 +81,7 @@ layout: default
       </div>
       <div style="display:none" id="windows" style="display:none">
         <div class="buttons is-centered">
-            <a class="button is-medium is-black" href="https://github.com/webcatalog/webcatalog/releases/download/v{{ site.webcatalog_version }}/webcatalog-setup-{{ site.webcatalog_version }}.exe">
+            <a class="button is-medium is-black" href="https://github.com/quanglam2807/webcatalog/releases/download/v{{ site.webcatalog_version }}/webcatalog-setup-{{ site.webcatalog_version }}.exe">
               <i class="fab fa-windows"></i>
               <span>&nbsp; Download for Windows</span>
             </a>
@@ -150,6 +142,12 @@ layout: default
       <hr />
       <h4>Notable Features</h4>
       <div class="columns is-multiline">
+        <div class="column is-full has-text-centered">
+          <a href="/images/demos/engines.png">
+            <img src="/images/demos/engines.png" alt="Engines" class="demo_main">
+          </a>
+          <p><small><b>Engines</b> - Choose between using <a href="https://www.google.com/chrome/">Google Chrome</a>, <a href="https://www.mozilla.org/firefox/">Mozilla Firefox</a> or <a href="https://electronjs.org/">Electron</a> to power your apps.</small></p>
+        </div>
         <div class="column is-half has-text-centered">
           <a href="/images/demos/catalog.png">
             <img src="/images/demos/catalog.png" alt="Catalog" class="demo">
