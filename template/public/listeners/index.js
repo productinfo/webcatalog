@@ -3,6 +3,7 @@ const {
   dialog,
   ipcMain,
   shell,
+  nativeTheme,
 } = require('electron');
 
 const {
@@ -125,12 +126,12 @@ const loadListeners = () => {
       buttons: ['Reset Now', 'Cancel'],
       message: 'Are you sure? All preferences will be restored to their original defaults. Browsing data won\'t be affected. This action cannot be undone.',
       cancelId: 1,
-    }, (response) => {
+    }).then(({ response }) => {
       if (response === 0) {
         resetPreferences();
         ipcMain.emit('request-show-require-restart-dialog');
       }
-    });
+    }).catch(console.log); // eslint-disable-line
   });
 
   ipcMain.on('request-show-preferences-window', () => {
@@ -147,12 +148,13 @@ const loadListeners = () => {
       buttons: ['Restart Now', 'Later'],
       message: 'You need to restart the app for this change to take affect.',
       cancelId: 1,
-    }, (response) => {
+    }).then(({ response }) => {
       if (response === 0) {
         app.relaunch();
         app.quit();
       }
-    });
+    })
+    .catch(console.log); // eslint-disable-line
   });
 
 
@@ -201,6 +203,7 @@ const loadListeners = () => {
 
   ipcMain.on('request-set-workspace', (e, id, opts) => {
     setWorkspace(id, opts);
+    createMenu();
   });
 
   ipcMain.on('request-set-workspace-picture', (e, id, picturePath) => {
@@ -217,11 +220,11 @@ const loadListeners = () => {
       buttons: ['Clear Now', 'Cancel'],
       message: 'Are you sure? All browsing data will be cleared. This action cannot be undone.',
       cancelId: 1,
-    }, (response) => {
+    }).then(({ response }) => {
       if (response === 0) {
         clearBrowsingData();
       }
-    });
+    }).catch(console.log); // eslint-disable-line
   });
 
   ipcMain.on('request-load-url', (e, url, id) => {
@@ -276,6 +279,19 @@ const loadListeners = () => {
 
   ipcMain.on('check-for-updates', () => {
     checkForUpdates();
+  });
+
+  // Native Theme
+  ipcMain.on('get-should-use-dark-colors', (e) => {
+    e.returnValue = nativeTheme.shouldUseDarkColors;
+  });
+
+  ipcMain.on('get-theme-source', (e) => {
+    e.returnValue = nativeTheme.themeSource;
+  });
+
+  ipcMain.on('request-set-theme-source', (e, val) => {
+    nativeTheme.themeSource = val;
   });
 };
 

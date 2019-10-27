@@ -20,13 +20,14 @@ import StatedMenu from '../shared/stated-menu';
 import { updateIsDefaultMailClient } from '../../state/general/actions';
 
 import {
+  requestClearBrowsingData,
   requestOpenInBrowser,
+  requestResetPreferences,
   requestSetPreference,
   requestSetSystemPreference,
-  requestResetPreferences,
-  requestClearBrowsingData,
-  requestShowRequireRestartDialog,
+  requestSetThemeSource,
   requestShowCodeInjectionWindow,
+  requestShowRequireRestartDialog,
 } from '../../senders';
 
 const { remote } = window.require('electron');
@@ -53,7 +54,7 @@ const appJson = remote.getGlobal('appJson');
 const getThemeString = (theme) => {
   if (theme === 'light') return 'Light';
   if (theme === 'dark') return 'Dark';
-  return 'Automatic';
+  return 'System default';
 };
 
 const getOpenAtLoginString = (openAtLogin) => {
@@ -63,9 +64,12 @@ const getOpenAtLoginString = (openAtLogin) => {
 };
 
 const Preferences = ({
+  askForDownloadPath,
   attachToMenubar,
+  autoCheckForUpdates,
   classes,
   cssCodeInjection,
+  downloadPath,
   isDefaultMailClient,
   jsCodeInjection,
   navigationBar,
@@ -76,7 +80,7 @@ const Preferences = ({
   sidebar,
   spellChecker,
   swipeToNavigate,
-  theme,
+  themeSource,
   unreadCountBadge,
 }) => (
   <div className={classes.root}>
@@ -89,14 +93,14 @@ const Preferences = ({
           id="theme"
           buttonElement={(
             <ListItem button>
-              <ListItemText primary="Theme" secondary={getThemeString(theme)} />
+              <ListItemText primary="Theme" secondary={getThemeString(themeSource)} />
               <ChevronRightIcon color="action" />
             </ListItem>
           )}
         >
-          <MenuItem onClick={() => requestSetPreference('theme', 'automatic')}>Automatic</MenuItem>
-          <MenuItem onClick={() => requestSetPreference('theme', 'light')}>Light</MenuItem>
-          <MenuItem onClick={() => requestSetPreference('theme', 'dark')}>Dark</MenuItem>
+          <MenuItem onClick={() => requestSetThemeSource('system')}>System default</MenuItem>
+          <MenuItem onClick={() => requestSetThemeSource('light')}>Light</MenuItem>
+          <MenuItem onClick={() => requestSetThemeSource('dark')}>Dark</MenuItem>
         </StatedMenu>
         <Divider />
         <ListItem>
@@ -218,6 +222,60 @@ const Preferences = ({
             }}
           />
         </ListItem>
+        <Divider />
+        <ListItem>
+          <ListItemText primary="Automatically check for updates" />
+          <Switch
+            checked={autoCheckForUpdates}
+            onChange={(e) => {
+              requestSetPreference('autoCheckForUpdates', e.target.checked);
+            }}
+            classes={{
+              switchBase: classes.switchBase,
+            }}
+          />
+        </ListItem>
+      </List>
+    </Paper>
+
+    <Typography variant="subtitle2" className={classes.sectionTitle}>
+      Downloads
+    </Typography>
+    <Paper className={classes.paper}>
+      <List dense>
+        <ListItem
+          button
+          onClick={() => {
+            remote.dialog.showOpenDialog(remote.getCurrentWindow(), {
+              properties: ['openDirectory'],
+            }).then((result) => {
+              if (!result.canceled && result.filePaths) {
+                requestSetPreference('downloadPath', result.filePaths[0]);
+              }
+            }).catch((err) => {
+              console.log(err);
+            });
+          }}
+        >
+          <ListItemText
+            primary="Download Location"
+            secondary={downloadPath}
+          />
+          <ChevronRightIcon color="action" />
+        </ListItem>
+        <Divider />
+        <ListItem>
+          <ListItemText primary="Ask where to save each file before downloading" />
+          <Switch
+            checked={askForDownloadPath}
+            onChange={(e) => {
+              requestSetPreference('askForDownloadPath', e.target.checked);
+            }}
+            classes={{
+              switchBase: classes.switchBase,
+            }}
+          />
+        </ListItem>
       </List>
     </Paper>
 
@@ -241,7 +299,7 @@ const Preferences = ({
         </ListItem>
         <Divider />
         <ListItem>
-          <ListItemText primary="Share browsing data betwwen workspaces" />
+          <ListItemText primary="Share browsing data between workspaces" />
           <Switch
             checked={shareWorkspaceBrowsingData}
             onChange={(e) => {
@@ -298,6 +356,31 @@ const Preferences = ({
       </>
     )}
 
+    {window.process.platform !== 'linux' && (
+    <>
+      <Typography variant="subtitle2" className={classes.sectionTitle}>
+        System
+      </Typography>
+      <Paper className={classes.paper}>
+        <List dense>
+          <StatedMenu
+            id="openAtLogin"
+            buttonElement={(
+              <ListItem button>
+                <ListItemText primary="Open at login" secondary={getOpenAtLoginString(openAtLogin)} />
+                <ChevronRightIcon color="action" />
+              </ListItem>
+            )}
+          >
+            <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'yes')}>Yes</MenuItem>
+            <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'yes-hidden')}>Yes, but minimized</MenuItem>
+            <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'no')}>No</MenuItem>
+          </StatedMenu>
+        </List>
+      </Paper>
+    </>
+    )}
+
     <Typography variant="subtitle2" className={classes.sectionTitle}>
       Developers
     </Typography>
@@ -313,31 +396,6 @@ const Preferences = ({
         </ListItem>
       </List>
     </Paper>
-
-    {window.process.platform !== 'linux' && (
-      <>
-        <Typography variant="subtitle2" className={classes.sectionTitle}>
-          System
-        </Typography>
-        <Paper className={classes.paper}>
-          <List dense>
-            <StatedMenu
-              id="openAtLogin"
-              buttonElement={(
-                <ListItem button>
-                  <ListItemText primary="Open at login" secondary={getOpenAtLoginString(openAtLogin)} />
-                  <ChevronRightIcon color="action" />
-                </ListItem>
-              )}
-            >
-              <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'yes')}>Yes</MenuItem>
-              <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'yes-hidden')}>Yes, but minimized</MenuItem>
-              <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'no')}>No</MenuItem>
-            </StatedMenu>
-          </List>
-        </Paper>
-      </>
-    )}
 
     <Typography variant="subtitle2" className={classes.sectionTitle}>
       Reset
@@ -359,9 +417,12 @@ Preferences.defaultProps = {
 };
 
 Preferences.propTypes = {
+  askForDownloadPath: PropTypes.bool.isRequired,
   attachToMenubar: PropTypes.bool.isRequired,
+  autoCheckForUpdates: PropTypes.bool.isRequired,
   classes: PropTypes.object.isRequired,
   cssCodeInjection: PropTypes.string,
+  downloadPath: PropTypes.string.isRequired,
   isDefaultMailClient: PropTypes.bool.isRequired,
   jsCodeInjection: PropTypes.string,
   navigationBar: PropTypes.bool.isRequired,
@@ -372,13 +433,16 @@ Preferences.propTypes = {
   sidebar: PropTypes.bool.isRequired,
   spellChecker: PropTypes.bool.isRequired,
   swipeToNavigate: PropTypes.bool.isRequired,
-  theme: PropTypes.string.isRequired,
+  themeSource: PropTypes.string.isRequired,
   unreadCountBadge: PropTypes.bool.isRequired,
 };
 
 const mapStateToProps = (state) => ({
+  askForDownloadPath: state.preferences.askForDownloadPath,
   attachToMenubar: state.preferences.attachToMenubar,
+  autoCheckForUpdates: state.preferences.autoCheckForUpdates,
   cssCodeInjection: state.preferences.cssCodeInjection,
+  downloadPath: state.preferences.downloadPath,
   isDefaultMailClient: state.general.isDefaultMailClient,
   jsCodeInjection: state.preferences.jsCodeInjection,
   navigationBar: state.preferences.navigationBar,
@@ -388,7 +452,7 @@ const mapStateToProps = (state) => ({
   sidebar: state.preferences.sidebar,
   spellChecker: state.preferences.spellChecker,
   swipeToNavigate: state.preferences.swipeToNavigate,
-  theme: state.preferences.theme,
+  themeSource: state.general.themeSource,
   unreadCountBadge: state.preferences.unreadCountBadge,
 });
 

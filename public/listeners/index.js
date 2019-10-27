@@ -2,6 +2,7 @@ const {
   app,
   dialog,
   ipcMain,
+  nativeTheme,
   shell,
 } = require('electron');
 
@@ -60,14 +61,14 @@ const loadListeners = () => {
       buttons: ['Reset Now', 'Cancel'],
       message: 'Are you sure? All preferences will be restored to their original defaults. Browsing data won\'t be affected. This action cannot be undone.',
       cancelId: 1,
-    }, (response) => {
+    }).then(({ response }) => {
       if (response === 0) {
         resetPreferences();
         createMenu();
 
         ipcMain.emit('request-show-require-restart-dialog');
       }
-    });
+    }).catch(console.log); // eslint-disable-line
   });
 
   ipcMain.on('request-show-require-restart-dialog', () => {
@@ -76,12 +77,12 @@ const loadListeners = () => {
       buttons: ['Restart Now', 'Later'],
       message: 'You need to restart the app for this change to take affect.',
       cancelId: 1,
-    }, (response) => {
+    }).then(({ response }) => {
       if (response === 0) {
         app.relaunch();
         app.quit();
       }
-    });
+    }).catch(console.log); // eslint-disable-line
   });
 
   ipcMain.on('request-open-install-location', () => {
@@ -102,7 +103,7 @@ const loadListeners = () => {
       buttons: ['Uninstall', 'Cancel'],
       message: `Are you sure you want to uninstall ${name}? This action cannot be undone.`,
       cancelId: 1,
-    }, (response) => {
+    }).then(({ response }) => {
       if (response === 0) {
         e.sender.send('set-app', id, {
           status: 'UNINSTALLING',
@@ -120,7 +121,8 @@ const loadListeners = () => {
             });
           });
       }
-    });
+    })
+    .catch(console.log); // eslint-disable-line
   });
 
   // Chain app installing promises
@@ -153,6 +155,19 @@ const loadListeners = () => {
         });
         e.sender.send('remove-app', id);
       }));
+  });
+
+  // Native Theme
+  ipcMain.on('get-should-use-dark-colors', (e) => {
+    e.returnValue = nativeTheme.shouldUseDarkColors;
+  });
+
+  ipcMain.on('get-theme-source', (e) => {
+    e.returnValue = nativeTheme.themeSource;
+  });
+
+  ipcMain.on('request-set-theme-source', (e, val) => {
+    nativeTheme.themeSource = val;
   });
 };
 

@@ -5,6 +5,7 @@ const {
   shell,
 } = require('electron');
 const path = require('path');
+const fsExtra = require('fs-extra');
 
 const appJson = require('../app.json');
 
@@ -141,13 +142,30 @@ const addView = (browserWindow, workspace) => {
     shell.openExternal(nextUrl);
   });
 
+  // Handle downloads
+  // https://electronjs.org/docs/api/download-item
+  view.webContents.session.on('will-download', (event, item) => {
+    const {
+      askForDownloadPath,
+      downloadPath,
+    } = getPreferences();
+
+    // Set the save path, making Electron not to prompt a save dialog.
+    if (!askForDownloadPath) {
+      const finalFilePath = path.join(downloadPath, item.getFilename());
+      if (!fsExtra.existsSync(finalFilePath)) {
+        item.savePath = finalFilePath; // eslint-disable-line
+      }
+    }
+  });
+
   // Hide Electron from UA to improve compatibility
   // https://github.com/quanglam2807/webcatalog/issues/182
-  // let uaStr = view.webContents.getUserAgent();
-  // uaStr = uaStr.replace(` ${app.getName()}/${app.getVersion()}`, '');
-  // uaStr = uaStr.replace(` Electron/${process.versions.electron}`, '');
-  let uaStr = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.106 Safari/537.36"
-  view.webContents.setUserAgent(uaStr);
+  //let uaStr = view.webContents.userAgent;
+  //uaStr = uaStr.replace(` ${app.name}/${app.getVersion()}`, '');
+  //uaStr = uaStr.replace(` Electron/${process.versions.electron}`, '');
+  let uaStr = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.106 Safari/537.36";
+  view.webContents.userAgent = uaStr;
 
   // Unread count badge
   if (unreadCountBadge) {
@@ -168,7 +186,7 @@ const addView = (browserWindow, workspace) => {
         count += c;
       });
 
-      app.setBadgeCount(count);
+      app.badgeCount = count;
     });
   }
 

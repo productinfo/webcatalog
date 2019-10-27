@@ -2,7 +2,7 @@
 
 |macOS|Linux|Windows|
 |---|---|---|
-|[![Travis Build Status](https://travis-ci.com/quanglam2807/webcatalog.svg?branch=master)](https://travis-ci.com/quanglam2807/webcatalog)|[![Travis Build Status](https://travis-ci.com/quanglam2807/webcatalog.svg?branch=master)](https://travis-ci.com/quanglam2807/webcatalog)|[![Build status](https://ci.appveyor.com/api/projects/status/nwbv85xdiq1s69pj?svg=true)](https://ci.appveyor.com/project/quanglam2807/webcatalog)|
+|[![Travis Build Status](https://travis-ci.com/quanglam2807/webcatalog.svg?branch=master)](https://travis-ci.com/quanglam2807/webcatalog)|[![Travis Build Status](https://travis-ci.com/quanglam2807/webcatalog.svg?branch=master)](https://travis-ci.com/quanglam2807/webcatalog)|[![Build status](https://ci.appveyor.com/api/projects/status/qsd7hb1en83vilyx?svg=true)](https://ci.appveyor.com/project/quanglam2807/webcatalog)|
 
 **[WebCatalog](https://getwebcatalog.com)** - Run Web Apps like Real Apps.
 

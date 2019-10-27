@@ -1,15 +1,22 @@
+const path = require('path');
 const settings = require('electron-settings');
+const { app } = require('electron');
 
 const sendToAllWindows = require('../libs/send-to-all-windows');
 
 const appJson = require('../app.json');
 
+const getDefaultDownloadsPath = () => path.join(app.getPath('home'), 'Downloads');
+
 // scope
 const v = '2018.2';
 
 const defaultPreferences = {
+  askForDownloadPath: true,
   attachToMenubar: false,
+  autoCheckForUpdates: true,
   cssCodeInjection: null,
+  downloadPath: getDefaultDownloadsPath(),
   jsCodeInjection: null,
   navigationBar: false,
   rememberLastPageVisited: false,
@@ -17,7 +24,6 @@ const defaultPreferences = {
   sidebar: Boolean(appJson.mailtoHandler),
   spellChecker: true,
   swipeToNavigate: true,
-  theme: process.platform === 'darwin' ? 'automatic' : 'light',
   unreadCountBadge: true,
 };
 
