@@ -9,7 +9,9 @@ const fsExtra = require('fs-extra');
 
 const appJson = require('../app.json');
 
-const { getPreferences } = require('./preferences');
+const {
+  getPreferences
+} = require('./preferences');
 const {
   getWorkspace,
   setWorkspace,
@@ -112,8 +114,8 @@ const addView = (browserWindow, workspace) => {
 
     // open new window normally if requested, or domain is not defined(about:)
     if (
-      nextDomain === null
-      || disposition === 'new-window'
+      nextDomain === null ||
+      disposition === 'new-window'
     ) {
       // https://gist.github.com/Gvozd/2cec0c8c510a707854e439fb15c561b0
       Object.assign(options, {
@@ -127,7 +129,8 @@ const addView = (browserWindow, workspace) => {
       // Google: Switch account
       nextDomain === 'accounts.google.com'
       // https://github.com/quanglam2807/webcatalog/issues/315
-      || nextDomain === appDomain
+      ||
+      nextDomain === appDomain
     ) {
       e.preventDefault();
       view.webContents.loadURL(nextUrl);
@@ -163,7 +166,7 @@ const addView = (browserWindow, workspace) => {
   let uaStr = view.webContents.getUserAgent();
   uaStr = uaStr.replace(` ${app.getName()}/${app.getVersion()}`, '');
   uaStr = uaStr.replace(` Electron/${process.versions.electron}`, '');
-  let uaStr = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36";
+  uaStr = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.146 Safari/537.36";
   view.webContents.setUserAgent(uaStr);
 
   // Unread count badge
@@ -221,8 +224,8 @@ const addView = (browserWindow, workspace) => {
     });
   }
 
-  view.webContents.loadURL((rememberLastPageVisited && workspace.lastUrl)
-  || workspace.homeUrl || appJson.url);
+  view.webContents.loadURL((rememberLastPageVisited && workspace.lastUrl) ||
+    workspace.homeUrl || appJson.url);
 };
 
 const getView = (id) => views[id];
