@@ -11,9 +11,9 @@ const aboutWindow = require('../windows/about');
 const mainWindow = require('../windows/main');
 const preferencesWindow = require('../windows/preferences');
 const editWorkspaceWindow = require('../windows/edit-workspace');
+const notificationsWindow = require('../windows/notifications');
 
 const {
-  countWorkspaces,
   getWorkspaces,
   getActiveWorkspace,
   getNextWorkspace,
@@ -106,7 +106,7 @@ function createMenu() {
 
             if (win != null) {
               const contents = win.getBrowserView().webContents;
-              contents.zoomFactor = 1;
+              contents.setZoomFactor(1);
             }
           },
         },
@@ -118,7 +118,9 @@ function createMenu() {
 
             if (win != null) {
               const contents = win.getBrowserView().webContents;
-              contents.zoomFactor += 0.1;
+              contents.getZoomFactor((zoomFactor) => {
+                contents.setZoomFactor(zoomFactor + 0.1);
+              });
             }
           },
         },
@@ -130,7 +132,9 @@ function createMenu() {
 
             if (win != null) {
               const contents = win.getBrowserView().webContents;
-              contents.zoomFactor += 0.1;
+              contents.getZoomFactor((zoomFactor) => {
+                contents.setZoomFactor(zoomFactor - 0.1);
+              });
             }
           },
         },
@@ -180,6 +184,19 @@ function createMenu() {
               label: 'Edit Workspace Window',
               click: () => {
                 const win = editWorkspaceWindow.get();
+                if (win != null) {
+                  if (win.webContents.isDevToolsOpened()) {
+                    win.webContents.closeDevTools();
+                  } else {
+                    win.webContents.openDevTools({ mode: 'detach' });
+                  }
+                }
+              },
+            },
+            {
+              label: 'Notifications Window',
+              click: () => {
+                const win = notificationsWindow.get();
                 if (win != null) {
                   if (win.webContents.isDevToolsOpened()) {
                     win.webContents.closeDevTools();
@@ -275,11 +292,11 @@ function createMenu() {
       role: 'help',
       submenu: [
         {
-          label: 'Report an Issue...',
-          click: () => shell.openExternal('https://github.com/quanglam2807/webcatalog/issues'),
+          label: 'WebCatalog Support',
+          click: () => shell.openExternal('https://getwebcatalog.com/support'),
         },
         {
-          label: 'Learn More...',
+          label: 'WebCatalog Website',
           click: () => shell.openExternal('https://getwebcatalog.com'),
         },
       ],
@@ -304,6 +321,11 @@ function createMenu() {
           label: 'Preferences...',
           accelerator: 'Cmd+,',
           click: () => preferencesWindow.show(),
+        },
+        { type: 'separator' },
+        {
+          label: 'Notifications...',
+          click: () => notificationsWindow.show(),
         },
         { type: 'separator' },
         {
@@ -352,6 +374,11 @@ function createMenu() {
         },
         { type: 'separator' },
         {
+          label: 'Notifications...',
+          click: () => notificationsWindow.show(),
+        },
+        { type: 'separator' },
+        {
           label: 'Clear Browsing Data...',
           accelerator: 'CmdOrCtrl+Shift+Delete',
           click: () => {
@@ -384,7 +411,7 @@ function createMenu() {
           setActiveWorkspaceView(workspace.id);
           createMenu();
         },
-        accelerator: `CmdOrCtrl+${i + 1}`,
+        accelerator: i < 9 ? `CmdOrCtrl+${i + 1}` : null,
       });
 
       template[2].submenu[7].submenu.push({
@@ -437,7 +464,6 @@ function createMenu() {
     { type: 'separator' },
     {
       label: 'Add Workspace',
-      enabled: countWorkspaces() < 9,
       click: () => {
         createWorkspaceView();
         createMenu();

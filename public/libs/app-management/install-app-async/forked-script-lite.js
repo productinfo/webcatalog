@@ -25,21 +25,19 @@ const {
   username,
   firefoxPath,
   chromePath,
+  bravePath,
+  vivaldiPath,
 } = argv;
 
 const sudoAsync = (prompt) => new Promise((resolve, reject) => {
   const opts = {
     name: 'WebCatalog',
   };
-  console.log(prompt);
   process.env.USER = username;
   sudo.exec(prompt, opts, (error, stdout, stderr) => {
     if (error) {
-      console.log(error);
       return reject(error);
     }
-    console.log(stdout);
-    console.log(stderr);
     return resolve(stdout, stderr);
   });
 });
@@ -94,8 +92,6 @@ const buildResourcesPath = path.join(tmpPath, 'build-resources');
 const iconIcnsPath = path.join(buildResourcesPath, 'e.icns');
 const iconPngPath = path.join(buildResourcesPath, 'e.png');
 const iconIcoPath = path.join(buildResourcesPath, 'e.ico');
-
-const chromiumDataPath = path.join(homePath, '.webcatalog', 'chromium-data', id);
 
 const allAppsPath = installationPath.replace('~', homePath);
 const finalPath = process.platform === 'darwin'
@@ -160,6 +156,7 @@ Promise.resolve()
         .then(() => fsExtra.copy(iconPngPath, publicIconPngPath))
         .then(() => fsExtra.copy(iconIcnsPath, publicIconIcnsPath))
         .then(() => {
+          const chromiumDataPath = path.join('$HOME', '.webcatalog', 'chromium-data', id);
           let execFileContent = '';
           switch (engine) {
             case 'firefox': {
@@ -172,10 +169,23 @@ Promise.resolve()
 /Applications/Chromium.app/Contents/MacOS/Chromium --class ${id} --user-data-dir="${chromiumDataPath}" --app="${url}"`;
               break;
             }
-            case 'chrome':
-            default: {
+            case 'chrome': {
               execFileContent = `#!/usr/bin/env bash
 /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome --class ${id} --user-data-dir="${chromiumDataPath}" --app="${url}"`;
+              break;
+            }
+            case 'brave': {
+              execFileContent = `#!/usr/bin/env bash
+/Applications/Brave\\ Browser.app/Contents/MacOS/Brave\\ Browser --class ${id} --user-data-dir="${chromiumDataPath}" --app="${url}"`;
+              break;
+            }
+            case 'vivaldi': {
+              execFileContent = `#!/usr/bin/env bash
+/Applications/Vivaldi.app/Contents/MacOS/Vivaldi --class ${id} --user-data-dir="${chromiumDataPath}" --app="${url}"`;
+              break;
+            }
+            default: {
+              return Promise.reject(new Error('Engine is not supported'));
             }
           }
           return fsExtra.outputFile(execFilePath, execFileContent);
@@ -207,6 +217,7 @@ Promise.resolve()
         .then(() => fsExtra.ensureDir(appAsarUnpackedPath))
         .then(() => fsExtra.copy(iconPngPath, publicIconPngPath))
         .then(() => {
+          const chromiumDataPath = path.join('$HOME', '.webcatalog', 'chromium-data', id);
           let execFileContent = '';
           switch (engine) {
             case 'firefox': {
@@ -219,10 +230,23 @@ firefox --class ${id} --P ${id} "${url}";`;
 chromium-browser --class "${name}" --user-data-dir="${chromiumDataPath}" --app="${url}";`;
               break;
             }
-            case 'chrome':
-            default: {
+            case 'chrome': {
               execFileContent = `#!/bin/sh -ue
 google-chrome --class "${name}" --user-data-dir="${chromiumDataPath}" --app="${url}";`;
+              break;
+            }
+            case 'brave': {
+              execFileContent = `#!/bin/sh -ue
+brave-browser --class "${name}" --user-data-dir="${chromiumDataPath}" --app="${url}";`;
+              break;
+            }
+            case 'vivaldi': {
+              execFileContent = `#!/bin/sh -ue
+vivaldi --class "${name}" --user-data-dir="${chromiumDataPath}" --app="${url}";`;
+              break;
+            }
+            default: {
+              return Promise.reject(new Error('Engine is not supported'));
             }
           }
           return fsExtra.outputFile(execFilePath, execFileContent);
@@ -278,6 +302,7 @@ Terminal=false;
     }
 
     if (process.platform === 'win32') {
+      const chromiumDataPath = path.join(homePath, '.webcatalog', 'chromium-data', id);
       let browserPath;
       let args;
 
@@ -286,6 +311,12 @@ Terminal=false;
         args = `--class ${id} --P ${id} "${url}"`;
       } else if (engine === 'chrome') {
         browserPath = chromePath;
+        args = `--class "${name}" --user-data-dir="${chromiumDataPath}" --app="${url}"`;
+      } else if (engine === 'brave') {
+        browserPath = bravePath;
+        args = `--class "${name}" --user-data-dir="${chromiumDataPath}" --app="${url}"`;
+      } else if (engine === 'vivaldi') {
+        browserPath = vivaldiPath;
         args = `--class "${name}" --user-data-dir="${chromiumDataPath}" --app="${url}"`;
       } else {
         return Promise.reject(new Error('Engine is not supporterd.'));
@@ -318,15 +349,23 @@ Terminal=false;
     process.exit(0);
   })
   .catch((e) => {
-    /* eslint-disable-next-line */
-    console.log(e);
-    process.send(e);
+    process.send({
+      error: {
+        name: e.name,
+        message: e.message,
+        stack: e.stack,
+      },
+    });
     process.exit(1);
   });
 
 process.on('uncaughtException', (e) => {
-  /* eslint-disable-next-line */
-  console.log(e);
+  process.send({
+    error: {
+      name: e.name,
+      message: e.message,
+      stack: e.stack,
+    },
+  });
   process.exit(1);
-  process.send(e);
 });

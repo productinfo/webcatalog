@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 const {
-  app, protocol, ipcMain, nativeTheme,
+  app, protocol, ipcMain, systemPreferences,
 } = require('electron');
 
 const loadListeners = require('./listeners');
@@ -12,9 +12,12 @@ const openUrlWithWindow = require('./windows/open-url-with');
 const createMenu = require('./libs/create-menu');
 const { addView } = require('./libs/views');
 const { checkForUpdates } = require('./libs/updater');
-const { getPreference } = require('./libs/preferences');
+const { setPreference, getPreference } = require('./libs/preferences');
 const { getWorkspaces } = require('./libs/workspaces');
 const sendToAllWindows = require('./libs/send-to-all-windows');
+const extractHostname = require('./libs/extract-hostname');
+
+const MAILTO_URLS = require('./constants/mailto-urls');
 
 const appJson = require('./app.json');
 
@@ -52,6 +55,8 @@ if (!gotTheLock) {
           const workspace = workspaceObjects[id];
           addView(mainWindow.get(), workspace);
         });
+
+        ipcMain.emit('request-update-pause-notifications-info');
       });
   };
 
@@ -61,17 +66,34 @@ if (!gotTheLock) {
     global.attachToMenubar = getPreference('attachToMenubar');
     global.showSidebar = getPreference('sidebar');
     global.showNavigationBar = getPreference('navigationBar');
+    global.MAILTO_URLS = MAILTO_URLS;
 
     commonInit();
 
-    const autoCheckForUpdates = getPreference('autoCheckForUpdates');
+    const autoCheckForUpdates = false;//getPreference('autoCheckForUpdates');
     if (autoCheckForUpdates) {
-      //checkForUpdates(true);
+      const lastCheckForUpdates = getPreference('lastCheckForUpdates');
+      const updateInterval = 7 * 24 * 60 * 60 * 1000; // one week
+      const now = Date.now();
+      if (now - lastCheckForUpdates > updateInterval) {
+        checkForUpdates(true);
+        setPreference('lastCheckForUpdates', now);
+      }
     }
 
+    /* Electron 7
     nativeTheme.addListener('updated', () => {
       sendToAllWindows('native-theme-updated');
     });
+    */
+    if (process.platform === 'darwin') {
+      systemPreferences.subscribeNotification(
+        'AppleInterfaceThemeChangedNotification',
+        () => {
+          sendToAllWindows('native-theme-updated');
+        },
+      );
+    }
   });
 
   app.on('before-quit', () => {
@@ -101,6 +123,43 @@ if (!gotTheLock) {
 
   app.on('open-url', (e, url) => {
     e.preventDefault();
+
+    const workspaces = Object.values(getWorkspaces());
+
+    if (workspaces.length < 1) return;
+
+    // handle mailto:
+    if (url.startsWith('mailto:')) {
+      const mailtoWorkspaces = workspaces
+        .filter((workspace) => extractHostname(workspace.homeUrl || appJson.url) in MAILTO_URLS);
+
+      // pick automically if there's only one choice
+      if (mailtoWorkspaces.length === 0) {
+        ipcMain.emit(
+          'request-show-message-box', null,
+          'None of your workspaces supports composing email messages.',
+          'error',
+        );
+        return;
+      }
+      if (mailtoWorkspaces.length === 1) {
+        const mailtoUrl = MAILTO_URLS[extractHostname(mailtoWorkspaces[0].homeUrl || appJson.url)];
+        const u = mailtoUrl.replace('%s', url);
+        ipcMain.emit('request-load-url', null, u, mailtoWorkspaces[0].id);
+        return;
+      }
+
+      app.whenReady()
+        .then(() => openUrlWithWindow.show(url));
+      return;
+    }
+
+    // handle https/http
+    // pick automically if there's only one choice
+    if (workspaces.length === 1) {
+      ipcMain.emit('request-load-url', null, url, workspaces[0].id);
+      return;
+    }
 
     app.whenReady()
       .then(() => openUrlWithWindow.show(url));

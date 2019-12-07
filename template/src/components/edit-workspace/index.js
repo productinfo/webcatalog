@@ -6,8 +6,13 @@ import TextField from '@material-ui/core/TextField';
 
 import connectComponent from '../../helpers/connect-component';
 import getAvatarText from '../../helpers/get-avatar-text';
+import getMailtoUrl from '../../helpers/get-mailto-url';
 
 import { updateForm, save } from '../../state/edit-workspace/actions';
+
+const { remote } = window.require('electron');
+
+const appJson = remote.getGlobal('appJson');
 
 const styles = (theme) => ({
   root: {
@@ -50,6 +55,7 @@ const styles = (theme) => ({
     fontWeight: 500,
     textTransform: 'uppercase',
     userSelect: 'none',
+    boxShadow: theme.shadows[1],
   },
   avatarPicture: {
     height: 64,
@@ -64,6 +70,8 @@ const styles = (theme) => ({
 const EditWorkspace = ({
   classes,
   homeUrl,
+  homeUrlError,
+  isMailApp,
   id,
   name,
   onSave,
@@ -89,7 +97,8 @@ const EditWorkspace = ({
       />
       <TextField
         id="outlined-full-width"
-        label="Home URL"
+        label={homeUrlError || 'Home URL'}
+        error={Boolean(homeUrlError)}
         placeholder="Optional"
         fullWidth
         margin="dense"
@@ -100,6 +109,15 @@ const EditWorkspace = ({
         }}
         value={homeUrl}
         onChange={(e) => onUpdateForm({ homeUrl: e.target.value })}
+        helperText={(() => {
+          if (!homeUrlError && isMailApp) {
+            return 'Email app detected.';
+          }
+          if (!homeUrl) {
+            return `Defaults to ${appJson.url}.`;
+          }
+          return null;
+        })()}
       />
       <div className={classes.avatarFlex}>
         <div className={classes.avatarLeft}>
@@ -113,19 +131,19 @@ const EditWorkspace = ({
           <Button
             variant="contained"
             onClick={() => {
-              const { remote } = window.require('electron');
               const opts = {
                 properties: ['openFile'],
                 filters: [
-                  { name: 'Images', extensions: ['jpg', 'png'] },
+                  { name: 'Images', extensions: ['jpg', 'jpeg', 'png'] },
                 ],
               };
               remote.dialog.showOpenDialog(remote.getCurrentWindow(), opts)
                 .then(({ canceled, filePaths }) => {
-                  if (!canceled && filePaths.length > 0) {
+                  if (!canceled && filePaths && filePaths.length > 0) {
                     onUpdateForm({ picturePath: filePaths[0] });
                   }
-                });
+                })
+                .catch(console.log); // eslint-disable-line
             }}
           >
             Change Icon
@@ -151,11 +169,14 @@ const EditWorkspace = ({
 
 EditWorkspace.defaultProps = {
   picturePath: null,
+  homeUrlError: null,
 };
 
 EditWorkspace.propTypes = {
   classes: PropTypes.object.isRequired,
   homeUrl: PropTypes.string.isRequired,
+  homeUrlError: PropTypes.string,
+  isMailApp: PropTypes.bool.isRequired,
   id: PropTypes.string.isRequired,
   name: PropTypes.string.isRequired,
   onSave: PropTypes.func.isRequired,
@@ -166,6 +187,8 @@ EditWorkspace.propTypes = {
 
 const mapStateToProps = (state) => ({
   homeUrl: state.editWorkspace.form.homeUrl,
+  homeUrlError: state.editWorkspace.form.homeUrlError,
+  isMailApp: Boolean(getMailtoUrl(state.editWorkspace.form.homeUrl)),
   id: state.editWorkspace.form.id,
   name: state.editWorkspace.form.name,
   order: state.editWorkspace.form.order,

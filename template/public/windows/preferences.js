@@ -1,7 +1,7 @@
 const { BrowserWindow } = require('electron');
 const path = require('path');
 
-const { REACT_PATH } = require('../constants');
+const { REACT_PATH } = require('../constants/paths');
 
 const mainWindow = require('./main');
 const { getPreference } = require('../libs/preferences');
@@ -15,7 +15,7 @@ const create = () => {
 
   win = new BrowserWindow({
     width: 500,
-    height: 400,
+    height: 600,
     resizable: false,
     maximizable: false,
     minimizable: false,

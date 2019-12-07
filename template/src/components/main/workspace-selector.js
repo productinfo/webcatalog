@@ -40,6 +40,7 @@ const styles = (theme) => ({
     textAlign: 'center',
     fontWeight: 500,
     textTransform: 'uppercase',
+    boxShadow: theme.shadows[1],
   },
   avatarPicture: {
     height: 32,
@@ -92,7 +93,7 @@ const WorkspaceSelector = ({
   >
     <div className={classes.avatar}>
       {picturePath ? (
-        <img alt="Icon" className={classes.avatarPicture} src={`file://${picturePath}`} />
+        <img alt="Icon" className={classes.avatarPicture} src={`file://${picturePath}`} draggable={false} />
       ) : getAvatarText(id, name, order)}
     </div>
     {badgeCount > 0 && (
@@ -100,7 +101,9 @@ const WorkspaceSelector = ({
         {badgeCount > 9 ? '*' : badgeCount}
       </div>
     )}
-    <p className={classes.shortcutText}>{id === 'add' ? 'Add' : `⌘ + ${order + 1}`}</p>
+    {(id === 'add' || order < 9) && (
+      <p className={classes.shortcutText}>{id === 'add' ? 'Add' : `⌘ + ${order + 1}`}</p>
+    )}
   </div>
 );
 

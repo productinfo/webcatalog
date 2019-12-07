@@ -17,15 +17,11 @@ const sudoAsync = (prompt) => new Promise((resolve, reject) => {
   const opts = {
     name: 'WebCatalog',
   };
-  console.log(prompt);
   process.env.USER = username;
   sudo.exec(prompt, opts, (error, stdout, stderr) => {
     if (error) {
-      console.log(error);
       return reject(error);
     }
-    console.log(stdout);
-    console.log(stderr);
     return resolve(stdout, stderr);
   });
 });
@@ -85,11 +81,23 @@ Promise.resolve()
     process.exit(0);
   })
   .catch((e) => {
-    process.send(e);
+    process.send({
+      error: {
+        name: e.name,
+        message: e.message,
+        stack: e.stack,
+      },
+    });
     process.exit(1);
   });
 
 process.on('uncaughtException', (e) => {
+  process.send({
+    error: {
+      name: e.name,
+      message: e.message,
+      stack: e.stack,
+    },
+  });
   process.exit(1);
-  process.send(e);
 });

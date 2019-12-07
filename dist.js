@@ -62,6 +62,7 @@ const opts = {
       category: 'public.app-category.utilities',
       hardenedRuntime: true,
       gatekeeperAssess: false,
+      darkModeSupport: true,
       entitlements: 'build-resources/entitlements.mac.plist',
       entitlementsInherit: 'build-resources/entitlements.mac.plist',
     },
@@ -72,9 +73,7 @@ const opts = {
     afterAllArtifactBuild: () => [TEMPLATE_JSON_PATH],
     afterSign: (context) => {
       // Only notarize app when forced in pull requests or when releasing using tag
-      const shouldNotarize = context.electronPlatformName === 'darwin'
-        && ((process.env.TRAVIS_PULL_REQUEST === 'true' && process.env.CSC_FOR_PULL_REQUEST === 'true')
-        || process.env.TRAVIS_TAG);
+      const shouldNotarize = process.platform === 'darwin' && context.electronPlatformName === 'darwin' && process.env.CI_BUILD_TAG;
       if (!shouldNotarize) return null;
 
       console.log('Notarizing app...');

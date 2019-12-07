@@ -8,28 +8,39 @@ const windowStateKeeper = require('electron-window-state');
 const { menubar } = require('menubar');
 const path = require('path');
 
-const { REACT_PATH } = require('../constants');
+const { REACT_PATH } = require('../constants/paths');
 const { getPreference } = require('../libs/preferences');
 
 let win;
 let mb = {};
+let attachToMenubar = false;
 
 const get = () => {
-  const attachToMenubar = getPreference('attachToMenubar');
   if (attachToMenubar) return mb.window;
   return win;
 };
 
 const createAsync = () => {
-  const attachToMenubar = getPreference('attachToMenubar');
+  attachToMenubar = getPreference('attachToMenubar');
   if (attachToMenubar) {
+    const menubarWindowState = windowStateKeeper({
+      file: 'window-state-menubar.json',
+      defaultWidth: 400,
+      defaultHeight: 400,
+    });
+
     mb = menubar({
       index: REACT_PATH,
       icon: path.resolve(__dirname, '..', 'menubar-icon.png'),
       preloadWindow: true,
       browserWindow: {
+        x: menubarWindowState.x,
+        y: menubarWindowState.y,
+        width: menubarWindowState.width,
+        height: menubarWindowState.height,
         webPreferences: {
           nodeIntegration: true,
+          preload: path.join(__dirname, '..', 'preload', 'menubar.js'),
         },
       },
     });
@@ -56,6 +67,17 @@ const createAsync = () => {
 
     return new Promise((resolve, reject) => {
       try {
+        mb.on('after-create-window', () => {
+          menubarWindowState.manage(mb.window);
+
+          mb.window.on('focus', () => {
+            const view = mb.window.getBrowserView();
+            if (view && view.webContents) {
+              view.webContents.focus();
+            }
+          });
+        });
+
         mb.on('ready', () => {
           mb.tray.on('right-click', () => {
             mb.tray.popUpContextMenu(contextMenu);
@@ -124,12 +146,18 @@ const createAsync = () => {
     win = null;
   });
 
+  win.on('focus', () => {
+    const view = win.getBrowserView();
+    if (view && view.webContents) {
+      view.webContents.focus();
+    }
+  });
+
+
   return Promise.resolve();
 };
 
 const show = () => {
-  const attachToMenubar = getPreference('attachToMenubar');
-
   if (attachToMenubar) {
     if (mb == null) {
       createAsync();
@@ -146,8 +174,8 @@ const show = () => {
 };
 
 const send = (...args) => {
-  if (win !== null) {
-    win.webContents.send(...args);
+  if (get() !== null) {
+    get().webContents.send(...args);
   }
 };
 

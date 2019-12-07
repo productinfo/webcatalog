@@ -1,6 +1,6 @@
 const {
-  app,
   BrowserView,
+  app,
   session,
   shell,
 } = require('electron');
@@ -36,12 +36,169 @@ const addView = (browserWindow, workspace) => {
 
   const view = new BrowserView({
     webPreferences: {
+      nativeWindowOpen: true,
       nodeIntegration: false,
       contextIsolation: true,
       partition: shareWorkspaceBrowsingData ? 'persist:shared' : `persist:${workspace.id}`,
       preload: path.join(__dirname, '..', 'preload', 'view.js'),
     },
   });
+
+  view.webContents.on('did-start-loading', () => {
+    if (getWorkspace(workspace.id).active) {
+      didFailLoad[workspace.id] = false;
+      sendToAllWindows('update-did-fail-load', false);
+      sendToAllWindows('update-is-loading', true);
+    }
+  });
+
+  view.webContents.on('did-stop-loading', () => {
+    if (getWorkspace(workspace.id).active) {
+      sendToAllWindows('update-is-loading', false);
+    }
+
+    const currentUrl = view.webContents.getURL();
+    setWorkspace(workspace.id, {
+      lastUrl: currentUrl,
+    });
+  });
+
+  if (workspace.active) {
+    const handleFocus = () => {
+      // focus on webview
+      // https://github.com/quanglam2807/webcatalog/issues/398
+      view.webContents.focus();
+      view.webContents.removeListener('did-stop-loading', handleFocus);
+    };
+    view.webContents.on('did-stop-loading', handleFocus);
+  }
+
+  // https://electronjs.org/docs/api/web-contents#event-did-fail-load
+  view.webContents.on('did-fail-load', (e, errorCode, errorDesc, validateUrl, isMainFrame) => {
+    if (isMainFrame && errorCode < 0 && errorCode !== -3) {
+      if (getWorkspace(workspace.id).active) {
+        if (getWorkspace(workspace.id).active) {
+          sendToAllWindows('update-loading', false);
+
+          didFailLoad[workspace.id] = true;
+          sendToAllWindows('update-did-fail-load', true);
+        }
+      }
+    }
+
+    // edge case to handle failed auth
+    if (errorCode === -300 && view.webContents.getURL().length === 0) {
+      view.webContents.loadURL(getWorkspace(workspace.id).homeUrl || appJson.url);
+    }
+  });
+
+  view.webContents.on('did-navigate', () => {
+    if (getWorkspace(workspace.id).active) {
+      sendToAllWindows('update-can-go-back', view.webContents.canGoBack());
+      sendToAllWindows('update-can-go-forward', view.webContents.canGoForward());
+    }
+  });
+
+  view.webContents.on('did-navigate-in-page', () => {
+    if (getWorkspace(workspace.id).active) {
+      sendToAllWindows('update-can-go-back', view.webContents.canGoBack());
+      sendToAllWindows('update-can-go-forward', view.webContents.canGoForward());
+    }
+  });
+
+  view.webContents.on('new-window', (e, nextUrl, frameName, disposition, options) => {
+    const appDomain = extractDomain(getWorkspace(workspace.id).homeUrl || appJson.url);
+    const nextDomain = extractDomain(nextUrl);
+
+    // open new window normally if requested, or domain is not defined(about:)
+    if (
+      nextDomain === null
+      || disposition === 'new-window'
+    ) {
+      // https://gist.github.com/Gvozd/2cec0c8c510a707854e439fb15c561b0
+      Object.assign(options, {
+        parent: browserWindow,
+      });
+      return;
+    }
+
+    // load in same window
+    if (
+      // Google: Switch account
+      nextDomain === 'accounts.google.com'
+      // https://github.com/quanglam2807/webcatalog/issues/315
+      || nextDomain === appDomain
+    ) {
+      e.preventDefault();
+      view.webContents.loadURL(nextUrl);
+      return;
+    }
+
+    // open external url in browser
+    if (disposition === 'foreground-tab') {
+      e.preventDefault();
+      shell.openExternal(nextUrl);
+    }
+  });
+
+  // Handle downloads
+  // https://electronjs.org/docs/api/download-item
+  view.webContents.session.on('will-download', (event, item) => {
+    const {
+      askForDownloadPath,
+      downloadPath,
+    } = getPreferences();
+
+    // Set the save path, making Electron not to prompt a save dialog.
+    if (!askForDownloadPath) {
+      const finalFilePath = path.join(downloadPath, item.getFilename());
+      if (!fsExtra.existsSync(finalFilePath)) {
+        item.setSavePath(finalFilePath);
+      }
+    }
+  });
+
+  // Hide Electron from UA to improve compatibility
+  // https://github.com/quanglam2807/webcatalog/issues/182
+  let uaStr = view.webContents.getUserAgent();
+  uaStr = uaStr.replace(` ${app.getName()}/${app.getVersion()}`, '');
+  uaStr = uaStr.replace(` Electron/${process.versions.electron}`, '');
+  let uaStr = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36";
+  view.webContents.setUserAgent(uaStr);
+
+  // Unread count badge
+  if (unreadCountBadge) {
+    view.webContents.on('page-title-updated', (e, title) => {
+      const itemCountRegex = /[([{](\d*?)[}\])]/;
+      const match = itemCountRegex.exec(title);
+
+      const incStr = match ? match[1] : '';
+      const inc = parseInt(incStr, 10) || 0;
+      badgeCounts[workspace.id] = inc;
+      sendToAllWindows('set-workspace', workspace.id, {
+        badgeCount: inc,
+      });
+
+      let count = 0;
+      Object.values(badgeCounts).forEach((c) => {
+        count += c;
+      });
+
+      app.setBadgeCount(count);
+    });
+  }
+
+  // Find In Page
+  view.webContents.on('found-in-page', (e, result) => {
+    sendToAllWindows('update-find-in-page-matches', result.activeMatchOrdinal, result.matches);
+  });
+
+  // Link preview
+  view.webContents.on('update-target-url', (e, url) => {
+    view.webContents.send('update-target-url', url);
+  });
+
+  views[workspace.id] = view;
 
   if (workspace.active) {
     browserWindow.setBrowserView(view);
@@ -64,146 +221,8 @@ const addView = (browserWindow, workspace) => {
     });
   }
 
-  view.webContents.on('did-start-loading', () => {
-    if (getWorkspace(workspace.id).active) {
-      didFailLoad[workspace.id] = false;
-      sendToAllWindows('update-did-fail-load', false);
-      sendToAllWindows('update-is-loading', true);
-    }
-  });
-
-  view.webContents.on('did-stop-loading', () => {
-    if (getWorkspace(workspace.id).active) {
-      sendToAllWindows('update-is-loading', false);
-    }
-
-    const currentUrl = view.webContents.getURL();
-    setWorkspace(workspace.id, {
-      lastUrl: currentUrl,
-    });
-  });
-
-  // https://electronjs.org/docs/api/web-contents#event-did-fail-load
-  view.webContents.on('did-fail-load', (e, errorCode, errorDesc, validateUrl, isMainFrame) => {
-    if (isMainFrame && errorCode < 0 && errorCode !== -3) {
-      if (getWorkspace(workspace.id).active) {
-        if (getWorkspace(workspace.id).active) {
-          sendToAllWindows('update-loading', false);
-
-          didFailLoad[workspace.id] = true;
-          sendToAllWindows('update-did-fail-load', true);
-        }
-      }
-    }
-
-    // edge case to handle failed auth
-    if (errorCode === -300 && view.webContents.getURL().length === 0) {
-      view.webContents.loadURL(workspace.homeUrl || appJson.url);
-    }
-  });
-
-  view.webContents.on('did-navigate', () => {
-    if (getWorkspace(workspace.id).active) {
-      sendToAllWindows('update-can-go-back', view.webContents.canGoBack());
-      sendToAllWindows('update-can-go-forward', view.webContents.canGoForward());
-    }
-  });
-
-  view.webContents.on('did-navigate-in-page', () => {
-    if (getWorkspace(workspace.id).active) {
-      sendToAllWindows('update-can-go-back', view.webContents.canGoBack());
-      sendToAllWindows('update-can-go-forward', view.webContents.canGoForward());
-    }
-  });
-
-  view.webContents.on('new-window', (e, nextUrl) => {
-    const curDomain = extractDomain(appJson.url);
-    const nextDomain = extractDomain(nextUrl);
-
-    // open new window normally if domain is not defined (about:)
-    if (nextDomain === null) {
-      return;
-    }
-
-    e.preventDefault();
-
-    // load in same window
-    if (
-      nextDomain === curDomain
-      || nextDomain === 'accounts.google.com'
-      || nextDomain === 'feedly.com'
-      || nextUrl.indexOf('oauth') > -1 // Works with Google & Facebook.
-    ) {
-      view.webContents.loadURL(nextUrl);
-      return;
-    }
-
-    // open external url in browser if domain doesn't match.
-    shell.openExternal(nextUrl);
-  });
-
-  // Handle downloads
-  // https://electronjs.org/docs/api/download-item
-  view.webContents.session.on('will-download', (event, item) => {
-    const {
-      askForDownloadPath,
-      downloadPath,
-    } = getPreferences();
-
-    // Set the save path, making Electron not to prompt a save dialog.
-    if (!askForDownloadPath) {
-      const finalFilePath = path.join(downloadPath, item.getFilename());
-      if (!fsExtra.existsSync(finalFilePath)) {
-        item.savePath = finalFilePath; // eslint-disable-line
-      }
-    }
-  });
-
-  // Hide Electron from UA to improve compatibility
-  // https://github.com/quanglam2807/webcatalog/issues/182
-  //let uaStr = view.webContents.userAgent;
-  //uaStr = uaStr.replace(` ${app.name}/${app.getVersion()}`, '');
-  //uaStr = uaStr.replace(` Electron/${process.versions.electron}`, '');
-  let uaStr = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.106 Safari/537.36";
-  view.webContents.userAgent = uaStr;
-
-  // Unread count badge
-  if (unreadCountBadge) {
-    view.webContents.on('page-title-updated', (e, title) => {
-      const itemCountRegex = /[([{](\d*?)[}\])]/;
-      const match = itemCountRegex.exec(title);
-
-      const incStr = match ? match[1] : '';
-      const inc = parseInt(incStr, 10) || 0;
-      badgeCounts[workspace.id] = inc;
-      sendToAllWindows('set-workspace', workspace.id, {
-        ...workspace,
-        badgeCount: inc,
-      });
-
-      let count = 0;
-      Object.values(badgeCounts).forEach((c) => {
-        count += c;
-      });
-
-      app.badgeCount = count;
-    });
-  }
-
-  // Find In Page
-  view.webContents.on('found-in-page', (e, result) => {
-    sendToAllWindows('update-find-in-page-matches', result.activeMatchOrdinal, result.matches);
-  });
-
-  // Link preview
-  view.webContents.on('update-target-url', (e, url) => {
-    view.webContents.send('update-target-url', url);
-  });
-
   view.webContents.loadURL((rememberLastPageVisited && workspace.lastUrl)
-    || workspace.homeUrl || appJson.url);
-
-  views[workspace.id] = view;
+  || workspace.homeUrl || appJson.url);
 };
 
 const getView = (id) => views[id];
@@ -233,6 +252,10 @@ const setActiveView = (browserWindow, id) => {
     width: true,
     height: true,
   });
+
+  // focus on webview
+  // https://github.com/quanglam2807/webcatalog/issues/398
+  view.webContents.focus();
 
   sendToAllWindows('update-is-loading', view.webContents.isLoading());
   sendToAllWindows('update-did-fail-load', Boolean(didFailLoad[id]));

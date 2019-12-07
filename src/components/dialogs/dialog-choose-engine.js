@@ -14,10 +14,12 @@ import Avatar from '@material-ui/core/Avatar';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Checkbox from '@material-ui/core/Checkbox';
 
-import electronIcon from '../../assets/electron.png';
+import braveIcon from '../../assets/brave.png';
 import chromeIcon from '../../assets/chrome.png';
 import chromiumIcon from '../../assets/chromium.png';
+import electronIcon from '../../assets/electron.png';
 import firefoxIcon from '../../assets/firefox.png';
+import vivaldiIcon from '../../assets/vivaldi.png';
 
 import connectComponent from '../../helpers/connect-component';
 
@@ -69,7 +71,7 @@ const DialogChooseEngine = (props) => {
       open={open}
     >
       <EnhancedDialogTitle onClose={onClose}>
-        Choose an Engine for
+        Choose an Browser Engine for
         {` ${name}`}
       </EnhancedDialogTitle>
       <DialogContent>
@@ -89,7 +91,7 @@ const DialogChooseEngine = (props) => {
               <Avatar alt="Electron" src={electronIcon} />
             </ListItemAvatar>
             <ListItemText
-              primary="Electron (recommended)"
+              primary="Electron (highly recommended)"
               secondary={(
                 <>
                   <Typography component="span" className={classes.inline} color="textPrimary">
@@ -100,7 +102,7 @@ const DialogChooseEngine = (props) => {
                   <Typography component="span" className={classes.inline} color="textPrimary">
                     Feature-rich
                   </Typography>
-                  {' — Supports workspaces, menubar, code injection, etc.'}
+                  {' — Supports badges, notifications, workspaces, menubar, code injection, etc.'}
                   <br />
                   <Typography component="span" className={classes.inline} color="textPrimary">
                     Less compatible
@@ -192,6 +194,78 @@ const DialogChooseEngine = (props) => {
           <ListItem
             alignItems="flex-start"
             button
+            onClick={() => onUpdateForm({ engine: 'brave' })}
+            selected={engine === 'brave'}
+          >
+            <ListItemAvatar>
+              <Avatar alt="Brave" src={braveIcon} />
+            </ListItemAvatar>
+            <ListItemText
+              primary="Brave"
+              secondary={(
+                <>
+                  <Typography component="span" className={classes.inline} color="textPrimary">
+                    Lightweight
+                  </Typography>
+                  {' — Takes up to 1 MB of disk space.'}
+                  <br />
+                  <Typography component="span" className={classes.inline} color="textPrimary">
+                    Less Feature-rich
+                  </Typography>
+                  {' — Offers less features but supports extensions.'}
+                  <br />
+                  <Typography component="span" className={classes.inline} color="textPrimary">
+                    Compatible
+                  </Typography>
+                  {' — Works with all sites.'}
+                  <br />
+                  <Typography component="span" className={classes.inline} color="textPrimary">
+                    No updates needed
+                  </Typography>
+                  {' — Automatically updates with the browser.'}
+                </>
+              )}
+            />
+          </ListItem>
+          <ListItem
+            alignItems="flex-start"
+            button
+            onClick={() => onUpdateForm({ engine: 'vivaldi' })}
+            selected={engine === 'vivaldi'}
+          >
+            <ListItemAvatar>
+              <Avatar alt="Brave" src={vivaldiIcon} />
+            </ListItemAvatar>
+            <ListItemText
+              primary="Vivaldi"
+              secondary={(
+                <>
+                  <Typography component="span" className={classes.inline} color="textPrimary">
+                    Lightweight
+                  </Typography>
+                  {' — Takes up to 1 MB of disk space.'}
+                  <br />
+                  <Typography component="span" className={classes.inline} color="textPrimary">
+                    Less Feature-rich
+                  </Typography>
+                  {' — Offers less features but supports extensions.'}
+                  <br />
+                  <Typography component="span" className={classes.inline} color="textPrimary">
+                    Compatible
+                  </Typography>
+                  {' — Works with all sites.'}
+                  <br />
+                  <Typography component="span" className={classes.inline} color="textPrimary">
+                    No updates needed
+                  </Typography>
+                  {' — Automatically updates with the browser.'}
+                </>
+              )}
+            />
+          </ListItem>
+          <ListItem
+            alignItems="flex-start"
+            button
             onClick={() => onUpdateForm({ engine: 'firefox' })}
             selected={engine === 'firefox'}
           >
@@ -247,7 +321,7 @@ const DialogChooseEngine = (props) => {
           color="primary"
           onClick={onCreate}
         >
-          Create
+          Install
         </Button>
       </DialogActions>
     </Dialog>

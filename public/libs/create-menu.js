@@ -5,9 +5,11 @@ const {
 } = require('electron');
 const { autoUpdater } = require('electron-updater');
 
+const mainWindow = require('../windows/main');
 const sendToAllWindows = require('./send-to-all-windows');
 
 const { getPreference } = require('./preferences');
+const formatBytes = require('./format-bytes');
 
 const createMenu = () => {
   const registered = getPreference('registered');
@@ -51,8 +53,20 @@ const createMenu = () => {
       role: 'help',
       submenu: [
         {
-          label: 'Report an Issue...',
+          label: 'Webcatalog Support',
+          click: () => shell.openExternal('https://getwebcatalog.com/support'),
+        },
+        {
+          label: 'Report a Bug via GitHub...',
           click: () => shell.openExternal('https://github.com/quanglam2807/webcatalog/issues'),
+        },
+        {
+          label: 'Request a New Feature via GitHub...',
+          click: () => shell.openExternal('https://github.com/quanglam2807/webcatalog/issues/new?template=feature.md&title=feature%3A+'),
+        },
+        {
+          label: 'Submit New App to Catalog...',
+          click: () => shell.openExternal('https://github.com/quanglam2807/webcatalog/issues/new?template=app.md&title=app%3A+'),
         },
         {
           label: 'Learn More...',
@@ -62,9 +76,34 @@ const createMenu = () => {
     },
   ];
 
+  const updaterMenuItem = {
+    label: 'Check for Updates...',
+    click: () => {
+      global.updateSilent = false;
+      autoUpdater.checkForUpdates();
+    },
+    visible: updaterEnabled,
+  };
+  if (global.updateDownloaded) {
+    updaterMenuItem.label = 'Restart to Apply Updates...';
+    updaterMenuItem.click = () => {
+      setImmediate(() => {
+        app.removeAllListeners('window-all-closed');
+        if (mainWindow.get() != null) {
+          mainWindow.get().close();
+        }
+        autoUpdater.quitAndInstall(false);
+      });
+    };
+  } else if (global.updaterProgressObj) {
+    const { transferred, total, bytesPerSecond } = global.updaterProgressObj;
+    updaterMenuItem.label = `Downloading Updates (${formatBytes(transferred)}/${formatBytes(total)} at ${formatBytes(bytesPerSecond)}/s)...`;
+    updaterMenuItem.enabled = false;
+  }
+
   if (process.platform === 'darwin') {
     template.unshift({
-      label: app.name,
+      label: app.getName(),
       submenu: [
         {
           label: 'About WebCatalog',
@@ -80,14 +119,7 @@ const createMenu = () => {
           type: 'separator',
           visible: updaterEnabled,
         },
-        {
-          label: 'Check for Updates...',
-          click: () => {
-            global.updateSilent = false;
-            autoUpdater.checkForUpdates();
-          },
-          visible: updaterEnabled,
-        },
+        updaterMenuItem,
         { type: 'separator' },
         {
           label: 'Preferences...',
@@ -132,14 +164,7 @@ const createMenu = () => {
           type: 'separator',
           visible: updaterEnabled,
         },
-        {
-          label: 'Check for Updates...',
-          click: () => {
-            global.updateSilent = false;
-            autoUpdater.checkForUpdates();
-          },
-          visible: updaterEnabled,
-        },
+        updaterMenuItem,
         { type: 'separator' },
         {
           label: 'Preferences...',

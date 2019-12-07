@@ -11,9 +11,16 @@ export const requestResetPreferences = () => ipcRenderer.send('request-reset-pre
 export const requestShowRequireRestartDialog = () => ipcRenderer.send('request-show-require-restart-dialog');
 export const requestOpenInstallLocation = () => ipcRenderer.send('request-open-install-location');
 
+// System Preferences
+export const getSystemPreference = (name) => ipcRenderer.sendSync('get-system-preference', name);
+export const getSystemPreferences = () => ipcRenderer.sendSync('get-system-preferences');
+export const requestSetSystemPreference = (name, value) => ipcRenderer.send('request-set-system-preference', name, value);
+
+
 // App Management
 export const requestGetInstalledApps = () => ipcRenderer.send('request-get-installed-apps');
-export const requestInstallApp = (engine, id, name, url, icon, mailtoHandler) => ipcRenderer.send('request-install-app', engine, id, name, url, icon, mailtoHandler);
+export const requestInstallApp = (engine, id, name, url, icon) => ipcRenderer.send('request-install-app', engine, id, name, url, icon);
+export const requestUpdateApp = (engine, id, name, url, icon) => ipcRenderer.send('request-update-app', engine, id, name, url, icon);
 export const requestUninstallApp = (id, name) => ipcRenderer.send('request-uninstall-app', id, name);
 export const requestOpenApp = (id, name) => ipcRenderer.send('request-open-app', id, name);
 

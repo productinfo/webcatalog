@@ -2,10 +2,12 @@ const {
   app,
   dialog,
   ipcMain,
-  nativeTheme,
+  // nativeTheme,
+  systemPreferences,
   shell,
 } = require('electron');
 
+const sendToAllWindows = require('../libs/send-to-all-windows');
 const openApp = require('../libs/app-management/open-app');
 const installAppAsync = require('../libs/app-management/install-app-async');
 const uninstallAppAsync = require('../libs/app-management/uninstall-app-async');
@@ -17,6 +19,12 @@ const {
   setPreference,
   resetPreferences,
 } = require('../libs/preferences');
+
+const {
+  getSystemPreference,
+  getSystemPreferences,
+  setSystemPreference,
+} = require('../libs/system-preferences');
 
 const createMenu = require('../libs/create-menu');
 
@@ -55,6 +63,21 @@ const loadListeners = () => {
     }
   });
 
+  // System Preferences
+  ipcMain.on('get-system-preference', (e, name) => {
+    const val = getSystemPreference(name);
+    e.returnValue = val;
+  });
+
+  ipcMain.on('get-system-preferences', (e) => {
+    const preferences = getSystemPreferences();
+    e.returnValue = preferences;
+  });
+
+  ipcMain.on('request-set-system-preference', (e, name, value) => {
+    setSystemPreference(name, value);
+  });
+
   ipcMain.on('request-reset-preferences', () => {
     dialog.showMessageBox(mainWindow.get(), {
       type: 'question',
@@ -80,7 +103,7 @@ const loadListeners = () => {
     }).then(({ response }) => {
       if (response === 0) {
         app.relaunch();
-        app.quit();
+        app.exit(0);
       }
     }).catch(console.log); // eslint-disable-line
   });
@@ -116,6 +139,10 @@ const loadListeners = () => {
           .catch((error) => {
             /* eslint-disable-next-line */
             console.log(error);
+            dialog.showMessageBox(mainWindow.get(), {
+              type: 'error',
+              message: `Failed to uninstall ${name}. (${error.stack})`,
+            });
             e.sender.send('set-app', id, {
               status: 'INSTALLED',
             });
@@ -128,7 +155,7 @@ const loadListeners = () => {
   // Chain app installing promises
   let p = Promise.resolve();
 
-  ipcMain.on('request-install-app', (e, engine, id, name, url, icon, mailtoHandler) => {
+  ipcMain.on('request-install-app', (e, engine, id, name, url, icon) => {
     e.sender.send('set-app', id, {
       status: 'INSTALLING',
       engine,
@@ -136,10 +163,9 @@ const loadListeners = () => {
       name,
       url,
       icon,
-      mailtoHandler,
     });
 
-    p = p.then(() => installAppAsync(engine, id, name, url, icon, mailtoHandler)
+    p = p.then(() => installAppAsync(engine, id, name, url, icon)
       .then(() => {
         e.sender.send('set-app', id, {
           version: packageJson.templateVersion,
@@ -151,23 +177,63 @@ const loadListeners = () => {
         console.log(error);
         dialog.showMessageBox(mainWindow.get(), {
           type: 'error',
-          message: `Failed to install ${name}. (${error.message})`,
+          message: `Failed to install ${name}. (${error.message.includes('is not installed') ? error.message : error.stack})`,
         });
         e.sender.send('remove-app', id);
       }));
   });
 
+  ipcMain.on('request-update-app', (e, engine, id, name, url, icon) => {
+    e.sender.send('set-app', id, {
+      status: 'INSTALLING',
+    });
+
+    p = p.then(() => installAppAsync(engine, id, name, url, icon)
+      .then(() => {
+        e.sender.send('set-app', id, {
+          version: packageJson.templateVersion,
+          status: 'INSTALLED',
+        });
+      })
+      .catch((error) => {
+        /* eslint-disable-next-line */
+        console.log(error);
+        dialog.showMessageBox(mainWindow.get(), {
+          type: 'error',
+          message: `Failed to update ${name}. (${error.message})`,
+        });
+        e.sender.send('set-app', id, {
+          status: 'INSTALLED',
+        });
+      }));
+  });
+
   // Native Theme
   ipcMain.on('get-should-use-dark-colors', (e) => {
+    /* Electron 7
     e.returnValue = nativeTheme.shouldUseDarkColors;
+    */
+    const themeSource = getPreference('themeSource');
+    if (getPreference('themeSource') === 'system') {
+      e.returnValue = systemPreferences.isDarkMode();
+    } else {
+      e.returnValue = themeSource === 'dark';
+    }
   });
 
   ipcMain.on('get-theme-source', (e) => {
+    /* Electron 7
     e.returnValue = nativeTheme.themeSource;
+    */
+    e.returnValue = getPreference('themeSource');
   });
 
   ipcMain.on('request-set-theme-source', (e, val) => {
+    /* Electron 7
     nativeTheme.themeSource = val;
+    */
+    setPreference('themeSource', val);
+    sendToAllWindows('native-theme-updated');
   });
 };
 

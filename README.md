@@ -1,8 +1,9 @@
-# WebCatalog [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
+# WebCatalog [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)](LICENSE)
 
-|macOS|Linux|Windows|
-|---|---|---|
-|[![Travis Build Status](https://travis-ci.com/quanglam2807/webcatalog.svg?branch=master)](https://travis-ci.com/quanglam2807/webcatalog)|[![Travis Build Status](https://travis-ci.com/quanglam2807/webcatalog.svg?branch=master)](https://travis-ci.com/quanglam2807/webcatalog)|[![Build status](https://ci.appveyor.com/api/projects/status/qsd7hb1en83vilyx?svg=true)](https://ci.appveyor.com/project/quanglam2807/webcatalog)|
+|macOS|Linux|Windows|Catalog|
+|---|---|---|---|
+|[![GitHub Actions macOS Build Status](https://github.com/quanglam2807/webcatalog/workflows/macOS/badge.svg)](https://github.com/quanglam2807/webcatalog/actions?query=workflow%3AmacOS)|[![GitHub Actions Linux Build Status](https://github.com/quanglam2807/webcatalog/workflows/Linux/badge.svg)](https://github.com/quanglam2807/webcatalog/actions?query=workflow%3ALinux)|[![GitHub Actions Windows Build Status](https://github.com/quanglam2807/webcatalog/workflows/Windows/badge.svg)](https://github.com/quanglam2807/webcatalog/actions?query=workflow%3AWindows)|[![GitHub Actions Catalog Build Status](https://github.com/quanglam2807/webcatalog/workflows/Catalog/badge.svg)](https://github.com/quanglam2807/webcatalog/actions?query=workflow%3ACatalog)|
+
 
 **[WebCatalog](https://getwebcatalog.com)** - Run Web Apps like Real Apps.
 

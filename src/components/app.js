@@ -12,6 +12,7 @@ import Preferences from './pages/preferences';
 
 import DialogAbout from './dialogs/dialog-about';
 import DialogChooseEngine from './dialogs/dialog-choose-engine';
+import DialogSetPreferredEngine from './dialogs/dialog-set-preferred-engine';
 import DialogCreateCustomApp from './dialogs/dialog-create-custom-app';
 import DialogLicenseRegistration from './dialogs/dialog-license-registration';
 import DialogSetInstallationPath from './dialogs/dialog-set-installation-path';
@@ -56,11 +57,12 @@ class App extends React.Component {
 
     return (
       <div className={classes.root}>
-        {!isFullScreen && <FakeTitleBar />}
+        {!isFullScreen && window.process.platform === 'darwin' && window.mode !== 'menubar' && <FakeTitleBar />}
         {pageContent}
         <EnhancedBottomNavigation />
         <DialogAbout />
         <DialogChooseEngine />
+        <DialogSetPreferredEngine />
         <DialogCreateCustomApp />
         <DialogLicenseRegistration />
         <DialogSetInstallationPath />

@@ -3,7 +3,9 @@ const {
   dialog,
   ipcMain,
   shell,
-  nativeTheme,
+  // nativeTheme,
+  systemPreferences,
+  Notification,
 } = require('electron');
 
 const {
@@ -36,14 +38,20 @@ const {
   loadURL,
 } = require('../libs/workspaces-views');
 
-const createMenu = require('../libs/create-menu');
+const {
+  updatePauseNotificationsInfo,
+  getPauseNotificationsInfo,
+} = require('../libs/notifications');
 
+const createMenu = require('../libs/create-menu');
+const sendToAllWindows = require('../libs/send-to-all-windows');
 const { checkForUpdates } = require('../libs/updater');
 
 const mainWindow = require('../windows/main');
 const preferencesWindow = require('../windows/preferences');
 const editWorkspaceWindow = require('../windows/edit-workspace');
 const codeInjectionWindow = require('../windows/code-injection');
+const notificationsWindow = require('../windows/notifications');
 
 const appJson = require('../app.json');
 
@@ -142,8 +150,12 @@ const loadListeners = () => {
     editWorkspaceWindow.show(id);
   });
 
+  ipcMain.on('request-show-notifications-window', () => {
+    notificationsWindow.show();
+  });
+
   ipcMain.on('request-show-require-restart-dialog', () => {
-    dialog.showMessageBox({
+    dialog.showMessageBox(mainWindow.get(), {
       type: 'question',
       buttons: ['Restart Now', 'Later'],
       message: 'You need to restart the app for this change to take affect.',
@@ -151,12 +163,27 @@ const loadListeners = () => {
     }).then(({ response }) => {
       if (response === 0) {
         app.relaunch();
-        app.quit();
+        app.exit(0);
       }
     })
     .catch(console.log); // eslint-disable-line
   });
 
+  // Notifications
+  ipcMain.on('request-show-notification', (e, opts) => {
+    if (Notification.isSupported()) {
+      const notif = new Notification(opts);
+      notif.show();
+    }
+  });
+
+  ipcMain.on('get-pause-notifications-info', (e) => {
+    e.returnValue = getPauseNotificationsInfo();
+  });
+
+  ipcMain.on('request-update-pause-notifications-info', () => {
+    updatePauseNotificationsInfo();
+  });
 
   // Workspaces
   ipcMain.on('get-workspace', (e, id) => {
@@ -178,6 +205,17 @@ const loadListeners = () => {
     setActiveWorkspaceView(id);
     createMenu();
   });
+
+  ipcMain.on('request-realign-active-workspace', () => {
+    global.attachToMenubar = getPreference('attachToMenubar');
+    global.showSidebar = getPreference('sidebar');
+    global.showNavigationBar = getPreference('navigationBar');
+
+    const activeWorkspace = getActiveWorkspace();
+    setActiveWorkspaceView(activeWorkspace.id);
+    createMenu();
+  });
+
 
   ipcMain.on('request-open-url-in-workspace', (e, url, id) => {
     if (id) {
@@ -283,15 +321,30 @@ const loadListeners = () => {
 
   // Native Theme
   ipcMain.on('get-should-use-dark-colors', (e) => {
+    /* Electron 7
     e.returnValue = nativeTheme.shouldUseDarkColors;
+    */
+    const themeSource = getPreference('themeSource');
+    if (getPreference('themeSource') === 'system') {
+      e.returnValue = systemPreferences.isDarkMode();
+    } else {
+      e.returnValue = themeSource === 'dark';
+    }
   });
 
   ipcMain.on('get-theme-source', (e) => {
+    /* Electron 7
     e.returnValue = nativeTheme.themeSource;
+    */
+    e.returnValue = getPreference('themeSource');
   });
 
   ipcMain.on('request-set-theme-source', (e, val) => {
+    /* Electron 7
     nativeTheme.themeSource = val;
+    */
+    setPreference('themeSource', val);
+    sendToAllWindows('native-theme-updated');
   });
 };
 

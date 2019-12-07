@@ -9,7 +9,7 @@ const v = '2018';
 
 const getDefaultInstallationPath = () => {
   if (process.platform === 'darwin') {
-    return path.join(app.getPath('home'), 'Applications', 'WebCatalog Apps');
+    return path.join('~', 'Applications', 'WebCatalog Apps');
   }
   if (process.platform === 'linux') {
     return '~/.webcatalog';
@@ -21,13 +21,17 @@ const getDefaultInstallationPath = () => {
 };
 
 const defaultPreferences = {
+  allowPrerelease: false,
+  attachToMenubar: false,
   createDesktopShortcut: true,
   createStartMenuShortcut: true,
+  defaultHome: 'home',
+  hideEnginePrompt: true,
   installationPath: getDefaultInstallationPath(),
   preferredEngine: 'electron',
   registered: false,
   requireAdmin: false,
-  hideEnginePrompt: false,
+  themeSource: process.platform === 'darwin' ? 'system' : 'light',
 };
 
 const getPreferences = () => ({ ...defaultPreferences, ...settings.get(`preferences.${v}`) });

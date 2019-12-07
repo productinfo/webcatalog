@@ -17,18 +17,23 @@ import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import StatedMenu from '../../shared/stated-menu';
 
 import connectComponent from '../../../helpers/connect-component';
+import getEngineName from '../../../helpers/get-engine-name';
 
 import { getInstallingAppsAsList, getAppCount } from '../../../state/app-management/utils';
 
 import { open as openDialogSetInstallationPath } from '../../../state/dialog-set-installation-path/actions';
+import { open as openDialogSetPreferredEngine } from '../../../state/dialog-set-preferred-engine/actions';
+
 
 import {
   requestOpenInBrowser,
   requestOpenInstallLocation,
   requestResetPreferences,
   requestSetPreference,
+  requestSetSystemPreference,
   requestSetThemeSource,
   requestShowMessageBox,
+  requestShowRequireRestartDialog,
 } from '../../../senders';
 
 const { remote } = window.require('electron');
@@ -40,8 +45,14 @@ const styles = (theme) => ({
     flexDirection: 'column',
     overflow: 'hidden',
   },
+  appBar: {
+    WebkitAppRegion: 'drag',
+    WebkitUserSelect: 'none',
+  },
   title: {
     flex: 1,
+    textAlign: 'center',
+    color: theme.palette.text.primary,
   },
   scrollContainer: {
     flex: 1,
@@ -73,39 +84,32 @@ const getThemeString = (theme) => {
   return 'System default';
 };
 
+const getOpenAtLoginString = (openAtLogin) => {
+  if (openAtLogin === 'yes-hidden') return 'Yes, but minimized';
+  if (openAtLogin === 'yes') return 'Yes';
+  return 'No';
+};
+
 const getFileManagerName = () => {
   if (window.process.platform === 'darwin') return 'Finder';
-  if (window.process.platform === 'win32') return 'FIle Explorer';
+  if (window.process.platform === 'win32') return 'File Explorer';
   return 'file manager';
 };
 
-const getEngineName = (engine) => {
-  switch (engine) {
-    case 'electron': {
-      return 'Electron';
-    }
-    case 'firefox': {
-      return 'Mozilla Firefox';
-    }
-    case 'chromium': {
-      return 'Chromium';
-    }
-    default:
-    case 'chrome': {
-      return 'Google Chrome';
-    }
-  }
-};
-
 const Preferences = ({
+  allowPrerelease,
   appCount,
+  attachToMenubar,
   classes,
   createDesktopShortcut,
   createStartMenuShortcut,
+  defaultHome,
   hideEnginePrompt,
   installationPath,
   installingAppCount,
   onOpenDialogSetInstallationPath,
+  onOpenDialogSetPreferredEngine,
+  openAtLogin,
   preferredEngine,
   requireAdmin,
   themeSource,
@@ -124,8 +128,8 @@ const Preferences = ({
 
   return (
     <div className={classes.root}>
-      <AppBar position="static" className={classes.appBar} elevation={2}>
-        <Toolbar variant="dense">
+      <AppBar position="static" className={classes.appBar} elevation={2} color="inherit">
+        <Toolbar variant="dense" className={classes.toolbar}>
           <Typography variant="h6" color="inherit" className={classes.title}>
             Preferences
           </Typography>
@@ -134,44 +138,7 @@ const Preferences = ({
       <div className={classes.scrollContainer}>
         <div className={classes.inner}>
           <Typography variant="subtitle2" className={classes.sectionTitle}>
-            Engine
-          </Typography>
-          <Paper className={classes.paper}>
-            <List dense>
-              <StatedMenu
-                id="preferredEngine"
-                buttonElement={(
-                  <ListItem button>
-                    <ListItemText primary="Preferred engine" secondary={getEngineName(preferredEngine)} />
-                    <ChevronRightIcon color="action" />
-                  </ListItem>
-                )}
-              >
-                <MenuItem onClick={() => requestSetPreference('preferredEngine', 'electron')}>Electron (recommended)</MenuItem>
-                <MenuItem onClick={() => requestSetPreference('preferredEngine', 'chrome')}>Google Chrome</MenuItem>
-                {window.process.platform !== 'win32' && <MenuItem onClick={() => requestSetPreference('preferredEngine', 'chromium')}>Chromium</MenuItem>}
-                <MenuItem onClick={() => requestSetPreference('preferredEngine', 'firefox')}>Mozilla Firefox</MenuItem>
-              </StatedMenu>
-              <Divider />
-              <ListItem>
-                <ListItemText
-                  primary="Ask for engine selection before every installation"
-                />
-                <Switch
-                  checked={!hideEnginePrompt}
-                  onChange={(e) => {
-                    requestSetPreference('hideEnginePrompt', !e.target.checked);
-                  }}
-                  classes={{
-                    switchBase: classes.switchBase,
-                  }}
-                />
-              </ListItem>
-            </List>
-          </Paper>
-
-          <Typography variant="subtitle2" className={classes.sectionTitle}>
-            Appearance
+            General
           </Typography>
           <Paper className={classes.paper}>
             <List dense>
@@ -184,10 +151,49 @@ const Preferences = ({
                   </ListItem>
                 )}
               >
-                <MenuItem onClick={() => requestSetThemeSource('system')}>System default</MenuItem>
+                {window.process.platform === 'darwin' && <MenuItem onClick={() => requestSetThemeSource('system')}>System default</MenuItem>}
                 <MenuItem onClick={() => requestSetThemeSource('light')}>Light</MenuItem>
                 <MenuItem onClick={() => requestSetThemeSource('dark')}>Dark</MenuItem>
               </StatedMenu>
+              <Divider />
+              <ListItem>
+                <ListItemText
+                  primary={window.process.platform === 'win32'
+                    ? 'Attach to taskbar' : 'Attach to menubar'}
+                />
+                <Switch
+                  color="primary"
+                  checked={attachToMenubar}
+                  onChange={(e) => {
+                    requestSetPreference('attachToMenubar', e.target.checked);
+                    requestShowRequireRestartDialog();
+                  }}
+                  classes={{
+                    switchBase: classes.switchBase,
+                  }}
+                />
+              </ListItem>
+              <Divider />
+              <ListItem>
+                <ListItemText
+                  primary="Show installed apps at launch"
+                />
+                <Switch
+                  color="primary"
+                  checked={attachToMenubar || defaultHome === 'installed'}
+                  disabled={attachToMenubar}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      requestSetPreference('defaultHome', 'installed');
+                    } else {
+                      requestSetPreference('defaultHome', 'home');
+                    }
+                  }}
+                  classes={{
+                    switchBase: classes.switchBase,
+                  }}
+                />
+              </ListItem>
             </List>
           </Paper>
 
@@ -202,11 +208,57 @@ const Preferences = ({
             </List>
           </Paper>
 
+          {window.process.platform !== 'linux' && (
+            <>
+              <Typography variant="subtitle2" className={classes.sectionTitle}>
+                System
+              </Typography>
+              <Paper className={classes.paper}>
+                <List dense>
+                  <StatedMenu
+                    id="openAtLogin"
+                    buttonElement={(
+                      <ListItem button>
+                        <ListItemText primary="Open at login" secondary={getOpenAtLoginString(openAtLogin)} />
+                        <ChevronRightIcon color="action" />
+                      </ListItem>
+                    )}
+                  >
+                    <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'yes')}>Yes</MenuItem>
+                    <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'yes-hidden')}>Yes, but minimized</MenuItem>
+                    <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'no')}>No</MenuItem>
+                  </StatedMenu>
+                </List>
+              </Paper>
+            </>
+          )}
+
           <Typography variant="subtitle2" className={classes.sectionTitle}>
             Advanced
           </Typography>
           <Paper className={classes.paper}>
             <List dense>
+              <ListItem button onClick={onOpenDialogSetPreferredEngine}>
+                <ListItemText primary="Preferred browser engine" secondary={getEngineName(preferredEngine)} />
+                <ChevronRightIcon color="action" />
+              </ListItem>
+              <Divider />
+              <ListItem>
+                <ListItemText
+                  primary="Ask for browser engine selection before every installation"
+                />
+                <Switch
+                  color="primary"
+                  checked={!hideEnginePrompt}
+                  onChange={(e) => {
+                    requestSetPreference('hideEnginePrompt', !e.target.checked);
+                  }}
+                  classes={{
+                    switchBase: classes.switchBase,
+                  }}
+                />
+              </ListItem>
+              <Divider />
               {window.process.platform === 'win32' && (
                 <>
                   <ListItem>
@@ -214,6 +266,7 @@ const Preferences = ({
                       primary="Automatically create desktop shortcuts for newly installed apps"
                     />
                     <Switch
+                      color="primary"
                       checked={createDesktopShortcut}
                       onChange={(e) => {
                         requestSetPreference('createDesktopShortcut', e.target.checked);
@@ -230,6 +283,7 @@ const Preferences = ({
                       secondary="This preference only works with Electron engine."
                     />
                     <Switch
+                      color="primary"
                       checked={createStartMenuShortcut}
                       onChange={(e) => {
                         requestSetPreference('createStartMenuShortcut', e.target.checked);
@@ -326,6 +380,23 @@ const Preferences = ({
               <ListItem button onClick={requestOpenInstallLocation}>
                 <ListItemText primary={`Open installation path in ${getFileManagerName()}`} />
               </ListItem>
+              <Divider />
+              <ListItem>
+                <ListItemText
+                  primary="Receive pre-release updates"
+                />
+                <Switch
+                  color="primary"
+                  checked={allowPrerelease}
+                  onChange={(e) => {
+                    requestSetPreference('allowPrerelease', e.target.checked);
+                    requestShowRequireRestartDialog();
+                  }}
+                  classes={{
+                    switchBase: classes.switchBase,
+                  }}
+                />
+              </ListItem>
             </List>
           </Paper>
 
@@ -347,26 +418,35 @@ const Preferences = ({
 };
 
 Preferences.propTypes = {
+  allowPrerelease: PropTypes.bool.isRequired,
   appCount: PropTypes.number.isRequired,
+  attachToMenubar: PropTypes.bool.isRequired,
   classes: PropTypes.object.isRequired,
   createDesktopShortcut: PropTypes.bool.isRequired,
   createStartMenuShortcut: PropTypes.bool.isRequired,
+  defaultHome: PropTypes.string.isRequired,
   hideEnginePrompt: PropTypes.bool.isRequired,
   installationPath: PropTypes.string.isRequired,
   installingAppCount: PropTypes.number.isRequired,
   onOpenDialogSetInstallationPath: PropTypes.func.isRequired,
+  onOpenDialogSetPreferredEngine: PropTypes.func.isRequired,
+  openAtLogin: PropTypes.oneOf(['yes', 'yes-hidden', 'no']).isRequired,
   preferredEngine: PropTypes.string.isRequired,
   requireAdmin: PropTypes.bool.isRequired,
   themeSource: PropTypes.string.isRequired,
 };
 
 const mapStateToProps = (state) => ({
+  allowPrerelease: state.preferences.allowPrerelease,
   appCount: getAppCount(state),
+  attachToMenubar: state.preferences.attachToMenubar,
   createDesktopShortcut: state.preferences.createDesktopShortcut,
   createStartMenuShortcut: state.preferences.createStartMenuShortcut,
+  defaultHome: state.preferences.defaultHome,
   hideEnginePrompt: state.preferences.hideEnginePrompt,
   installationPath: state.preferences.installationPath,
   installingAppCount: getInstallingAppsAsList(state).length,
+  openAtLogin: state.systemPreferences.openAtLogin,
   preferredEngine: state.preferences.preferredEngine,
   requireAdmin: state.preferences.requireAdmin,
   themeSource: state.general.themeSource,
@@ -374,6 +454,7 @@ const mapStateToProps = (state) => ({
 
 const actionCreators = {
   openDialogSetInstallationPath,
+  openDialogSetPreferredEngine,
 };
 
 export default connectComponent(

@@ -55,6 +55,7 @@ const DialogCreateCustomApp = (props) => {
     open,
     url,
     urlError,
+    hideEnginePrompt,
   } = props;
 
   let iconPath = defaultIcon;
@@ -105,11 +106,13 @@ const DialogCreateCustomApp = (props) => {
                 dialog.showOpenDialog({
                   filters: [{ name: 'PNG (Portable Network Graphics)', extensions: ['png'] }],
                   properties: ['openFile'],
-                }, (filePaths) => {
-                  if (filePaths && filePaths.length > 0) {
-                    onUpdateForm({ icon: filePaths[0] });
-                  }
-                });
+                })
+                  .then(({ canceled, filePaths }) => {
+                    if (!canceled && filePaths && filePaths.length > 0) {
+                      onUpdateForm({ icon: filePaths[0] });
+                    }
+                  })
+                  .catch(console.log); // eslint-disable-line
               }}
             >
               Change Icon
@@ -127,7 +130,7 @@ const DialogCreateCustomApp = (props) => {
           color="primary"
           onClick={onCreate}
         >
-          Continue
+          {hideEnginePrompt ? 'Install' : 'Continue'}
         </Button>
       </DialogActions>
     </Dialog>
@@ -153,6 +156,7 @@ DialogCreateCustomApp.propTypes = {
   open: PropTypes.bool.isRequired,
   url: PropTypes.string,
   urlError: PropTypes.string,
+  hideEnginePrompt: PropTypes.bool.isRequired,
 };
 
 const mapStateToProps = (state) => {
@@ -174,6 +178,7 @@ const mapStateToProps = (state) => {
     open,
     url,
     urlError,
+    hideEnginePrompt: state.preferences.hideEnginePrompt,
   };
 };
 

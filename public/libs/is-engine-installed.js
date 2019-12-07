@@ -2,8 +2,10 @@ const path = require('path');
 const fs = require('fs');
 const commandExistsSync = require('command-exists').sync;
 
+const getWin32BravePaths = require('./get-win32-brave-paths');
 const getWin32ChromePaths = require('./get-win32-chrome-paths');
 const getWin32FirefoxPaths = require('./get-win32-firefox-paths');
+const getWin32VivaldiPaths = require('./get-win32-vivaldi-paths');
 
 const isEngineInstalled = (browser) => {
   switch (browser) {
@@ -39,8 +41,41 @@ const isEngineInstalled = (browser) => {
 
       return false;
     }
-    case 'chrome':
-    default: {
+    case 'brave': {
+      if (process.platform === 'darwin') {
+        const bravePath = path.join('/Applications', 'Brave Browser.app');
+        return fs.existsSync(bravePath);
+      }
+
+      if (process.platform === 'linux') {
+        return commandExistsSync('brave-browser');
+      }
+
+      if (process.platform === 'win32') {
+        const bravePaths = getWin32BravePaths();
+        return bravePaths.length > 0;
+      }
+
+      return false;
+    }
+    case 'vivaldi': {
+      if (process.platform === 'darwin') {
+        const bravePath = path.join('/Applications', 'Vivaldi.app');
+        return fs.existsSync(bravePath);
+      }
+
+      if (process.platform === 'linux') {
+        return commandExistsSync('vivaldi');
+      }
+
+      if (process.platform === 'win32') {
+        const bravePaths = getWin32VivaldiPaths();
+        return bravePaths.length > 0;
+      }
+
+      return false;
+    }
+    case 'chrome': {
       if (process.platform === 'darwin') {
         const chromePath = path.join('/Applications', 'Google Chrome.app');
         return fs.existsSync(chromePath);
@@ -55,6 +90,9 @@ const isEngineInstalled = (browser) => {
         return chromePaths.length > 0;
       }
 
+      return false;
+    }
+    default: {
       return false;
     }
   }

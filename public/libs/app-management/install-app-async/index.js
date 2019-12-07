@@ -1,15 +1,20 @@
 const path = require('path');
 const { fork } = require('child_process');
 const { app } = require('electron');
+const tmp = require('tmp');
 
 const { getPreference } = require('./../../preferences');
 const isEngineInstalled = require('../../is-engine-installed');
 
+const getWin32BravePaths = require('../../get-win32-brave-paths');
 const getWin32ChromePaths = require('../../get-win32-chrome-paths');
 const getWin32FirefoxPaths = require('../../get-win32-firefox-paths');
+const getWin32VivaldiPaths = require('../../get-win32-vivaldi-paths');
+
+let lastUsedTmpPath = null;
 
 const installAppAsync = (
-  engine, id, name, url, icon, mailtoHandler,
+  engine, id, name, url, icon,
 ) => new Promise((resolve, reject) => {
   if (!isEngineInstalled(engine)) {
     let engineName;
@@ -24,6 +29,14 @@ const installAppAsync = (
       }
       case 'chromium': {
         engineName = 'Chromium';
+        break;
+      }
+      case 'brave': {
+        engineName = 'Brave';
+        break;
+      }
+      case 'vivaldi': {
+        engineName = 'Vivaldi';
         break;
       }
       default:
@@ -75,10 +88,22 @@ const installAppAsync = (
     params.push(getWin32ChromePaths()[0]);
   }
 
-  if (mailtoHandler && mailtoHandler.length > 0) {
+  if (engine === 'brave') {
+    params.push('--bravePath');
+    params.push(getWin32BravePaths()[0]);
+  }
+
+  if (engine === 'vivaldi') {
+    params.push('--vivaldiPath');
+    params.push(getWin32VivaldiPaths()[0]);
+  }
+
+  let tmpPath = null;
+  if (engine === 'electron') {
+    tmpPath = lastUsedTmpPath || tmp.dirSync().name;
     params.push(
-      '--mailtoHandler',
-      mailtoHandler,
+      '--tmpPath',
+      tmpPath,
     );
   }
 
@@ -90,16 +115,25 @@ const installAppAsync = (
     },
   });
 
+  let err = null;
   child.on('message', (message) => {
-    console.log(message);
+    if (message && message.error) {
+      err = new Error(message.error.message);
+      err.stack = message.error.stack;
+      err.name = message.error.name;
+    }
+    console.log(message); // eslint-disable-line no-console
   });
 
   child.on('exit', (code) => {
     if (code === 1) {
-      reject(new Error('Forked script failed to run correctly.'));
+      lastUsedTmpPath = null;
+      reject(err || new Error('Forked script failed to run correctly.'));
       return;
     }
-
+    if (tmpPath) {
+      lastUsedTmpPath = tmpPath;
+    }
     resolve();
   });
 });

@@ -7,11 +7,13 @@ import dialogChooseEngine from './dialog-choose-engine/reducers';
 import dialogCreateCustomApp from './dialog-create-custom-app/reducers';
 import dialogLicenseRegistration from './dialog-license-registration/reducers';
 import dialogSetInstallationPath from './dialog-set-installation-path/reducers';
+import dialogSetPreferredEngine from './dialog-set-preferred-engine/reducers';
 import general from './general/reducers';
 import home from './home/reducers';
+import installed from './installed/reducers';
 import preferences from './preferences/reducers';
 import router from './router/reducers';
-import installed from './installed/reducers';
+import systemPreferences from './system-preferences/reducers';
 
 const rootReducer = combineReducers({
   appManagement,
@@ -20,11 +22,13 @@ const rootReducer = combineReducers({
   dialogCreateCustomApp,
   dialogLicenseRegistration,
   dialogSetInstallationPath,
+  dialogSetPreferredEngine,
   general,
   home,
   installed,
   preferences,
   router,
+  systemPreferences,
 });
 
 const configureStore = (initialState) => createStore(

@@ -11,7 +11,7 @@ import Badge from '@material-ui/core/Badge';
 import connectComponent from '../../helpers/connect-component';
 
 import { changeRoute } from '../../state/router/actions';
-import { getOutdatedAppsAsList } from '../../state/app-management/utils';
+import { getAppBadgeCount } from '../../state/app-management/utils';
 
 import {
   ROUTE_HOME,
@@ -23,35 +23,58 @@ const styles = {
   paper: {
     zIndex: 1,
   },
+  bottomNavigation: {
+    height: 40,
+  },
+  bottomNavigationActionWrapper: {
+    flexDirection: 'row',
+  },
+  bottomNavigationActionLabel: {
+    fontSize: '0.8rem !important',
+    paddingLeft: 4,
+  },
 };
 
 const EnhancedBottomNavigation = ({
-  classes, route, outdatedAppCount, onChangeRoute,
+  classes, route, appBadgeCount, onChangeRoute,
 }) => (
   <Paper elevation={2} className={classes.paper}>
     <BottomNavigation
       value={route}
       onChange={(e, value) => onChangeRoute(value)}
       showLabels
+      classes={{ root: classes.bottomNavigation }}
     >
       <BottomNavigationAction
         label="Home"
         icon={<HomeIcon />}
         value={ROUTE_HOME}
+        classes={{
+          wrapper: classes.bottomNavigationActionWrapper,
+          label: classes.bottomNavigationActionLabel,
+        }}
       />
       <BottomNavigationAction
         label="Installed"
-        icon={outdatedAppCount > 0 ? (
-          <Badge color="secondary" badgeContent={outdatedAppCount}>
+        icon={appBadgeCount > 0 ? (
+          <Badge color="secondary" badgeContent={appBadgeCount}>
             <SystemUpdateIcon />
           </Badge>
         ) : <SystemUpdateIcon />}
         value={ROUTE_INSTALLED}
+        classes={{
+          wrapper: classes.bottomNavigationActionWrapper,
+          label: classes.bottomNavigationActionLabel,
+        }}
       />
       <BottomNavigationAction
         label="Preferences"
         icon={<SettingsIcon />}
         value={ROUTE_PREFERENCES}
+        classes={{
+          wrapper: classes.bottomNavigationActionWrapper,
+          label: classes.bottomNavigationActionLabel,
+        }}
       />
     </BottomNavigation>
   </Paper>
@@ -60,14 +83,14 @@ const EnhancedBottomNavigation = ({
 EnhancedBottomNavigation.propTypes = {
   classes: PropTypes.object.isRequired,
   route: PropTypes.string.isRequired,
-  outdatedAppCount: PropTypes.number.isRequired,
+  appBadgeCount: PropTypes.number.isRequired,
   onChangeRoute: PropTypes.func.isRequired,
 };
 
 const mapStateToProps = (state) => ({
   activated: state.general.activated,
   route: state.router.route,
-  outdatedAppCount: getOutdatedAppsAsList(state).length,
+  appBadgeCount: getAppBadgeCount(state),
 });
 
 const actionCreators = {

@@ -6,7 +6,6 @@ const icongen = require('icon-gen');
 const Jimp = require('jimp');
 const isUrl = require('is-url');
 const download = require('download');
-const tmp = require('tmp');
 const decompress = require('decompress');
 const sudo = require('sudo-prompt');
 const ws = require('windows-shortcuts');
@@ -16,7 +15,6 @@ const {
   name,
   url,
   icon,
-  mailtoHandler,
   homePath,
   desktopPath,
   installationPath,
@@ -24,12 +22,11 @@ const {
   username,
   createDesktopShortcut,
   createStartMenuShortcut,
+  tmpPath,
 } = argv;
 
 const templatePath = path.resolve(__dirname, '..', '..', '..', '..', 'template.zip');
 
-const tmpObj = tmp.dirSync();
-const tmpPath = tmpObj.name;
 const appPath = path.join(tmpPath, 'template');
 const buildResourcesPath = path.join(tmpPath, 'build-resources');
 const iconIcnsPath = path.join(buildResourcesPath, 'e.icns');
@@ -69,15 +66,11 @@ const sudoAsync = (prompt) => new Promise((resolve, reject) => {
   const opts = {
     name: 'WebCatalog',
   };
-  console.log(prompt);
   process.env.USER = username;
   sudo.exec(prompt, opts, (error, stdout, stderr) => {
     if (error) {
-      console.log(error);
       return reject(error);
     }
-    console.log(stdout);
-    console.log(stderr);
     return resolve(stdout, stderr);
   });
 });
@@ -95,7 +88,19 @@ const createShortcutAsync = (shortcutPath, opts) => {
   });
 };
 
-decompress(templatePath, tmpPath)
+Promise.resolve()
+  .then(() => fsExtra.exists(packageJsonPath))
+  .then((exists) => {
+    // if tmp path has package.json file
+    // assume that it has the template code
+    if (exists) {
+      console.log('Skipped decompressing template code'); // eslint-disable-line no-console
+      return null;
+    }
+    // if not, decompress new template code
+    console.log('Decompressing template code...'); // eslint-disable-line no-console
+    return decompress(templatePath, tmpPath);
+  })
   .then(() => {
     if (isUrl(icon)) {
       return download(icon, buildResourcesPath, {
@@ -165,7 +170,7 @@ decompress(templatePath, tmpPath)
   .then(() => fsExtra.copy(iconPngPath, publicIconPngPath))
   .then(() => {
     const appJson = JSON.stringify({
-      id, name, url, mailtoHandler, engine: 'electron',
+      id, name, url, engine: 'electron',
     });
     return fsExtra.writeFileSync(appJsonPath, appJson);
   })
@@ -193,6 +198,7 @@ decompress(templatePath, tmpPath)
       overwrite: true,
       prune: true,
       osxSign: false,
+      darwinDarkModeSupport: true,
       asar: {
         unpack: '{app.json,icon.png,package.json,manifest.json}',
       },
@@ -207,14 +213,11 @@ decompress(templatePath, tmpPath)
         name: 'HTTP Protocol',
         schemes: ['http'],
       },
-    ];
-
-    if (mailtoHandler && mailtoHandler.length > 0) {
-      opts.protocols.push({
+      {
         name: 'Mailto Protocol',
         schemes: ['mailto'],
-      });
-    }
+      },
+    ];
 
     return packager(opts);
   })
@@ -274,15 +277,23 @@ Terminal=false;
     process.exit(0);
   })
   .catch((e) => {
-    /* eslint-disable-next-line */
-    console.log(e);
-    process.send(e);
+    process.send({
+      error: {
+        name: e.name,
+        message: e.message,
+        stack: e.stack,
+      },
+    });
     process.exit(1);
   });
 
 process.on('uncaughtException', (e) => {
-  /* eslint-disable-next-line */
-  console.log(e);
+  process.send({
+    error: {
+      name: e.name,
+      message: e.message,
+      stack: e.stack,
+    },
+  });
   process.exit(1);
-  process.send(e);
 });
