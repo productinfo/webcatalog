@@ -6,6 +6,7 @@ import Divider from '@material-ui/core/Divider';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
+import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
 import MenuItem from '@material-ui/core/MenuItem';
 import Paper from '@material-ui/core/Paper';
 import Switch from '@material-ui/core/Switch';
@@ -48,9 +49,6 @@ const styles = (theme) => ({
   paper: {
     marginTop: theme.spacing.unit * 0.5,
     marginBottom: theme.spacing.unit * 3,
-  },
-  switchBase: {
-    height: 'auto',
   },
   timePickerContainer: {
     marginTop: theme.spacing.unit,
@@ -161,7 +159,7 @@ const Preferences = ({
 }) => (
   <div className={classes.root}>
     <Typography variant="subtitle2" className={classes.sectionTitle}>
-      Appearance
+      General
     </Typography>
     <Paper className={classes.paper}>
       <List dense>
@@ -184,17 +182,16 @@ const Preferences = ({
             primary="Show sidebar"
             secondary="Sidebar lets you switch easily between workspaces."
           />
-          <Switch
-            color="primary"
-            checked={sidebar}
-            onChange={(e) => {
-              requestSetPreference('sidebar', e.target.checked);
-              requestRealignActiveWorkspace();
-            }}
-            classes={{
-              switchBase: classes.switchBase,
-            }}
-          />
+          <ListItemSecondaryAction>
+            <Switch
+              color="primary"
+              checked={sidebar}
+              onChange={(e) => {
+                requestSetPreference('sidebar', e.target.checked);
+                requestRealignActiveWorkspace();
+              }}
+            />
+          </ListItemSecondaryAction>
         </ListItem>
         <Divider />
         <ListItem>
@@ -202,17 +199,80 @@ const Preferences = ({
             primary="Show navigation bar"
             secondary="Navigation bar lets you go back, forward, home and reload."
           />
-          <Switch
-            color="primary"
-            checked={navigationBar}
-            onChange={(e) => {
-              requestSetPreference('navigationBar', e.target.checked);
-              requestRealignActiveWorkspace();
-            }}
-            classes={{
-              switchBase: classes.switchBase,
-            }}
+          <ListItemSecondaryAction>
+            <Switch
+              color="primary"
+              checked={navigationBar}
+              onChange={(e) => {
+                requestSetPreference('navigationBar', e.target.checked);
+                requestRealignActiveWorkspace();
+              }}
+            />
+          </ListItemSecondaryAction>
+        </ListItem>
+        <Divider />
+        <ListItem>
+          <ListItemText
+            primary={window.process.platform === 'win32'
+              ? 'Attach to taskbar' : 'Attach to menubar'}
           />
+          <ListItemSecondaryAction>
+            <Switch
+              color="primary"
+              checked={attachToMenubar}
+              onChange={(e) => {
+                requestSetPreference('attachToMenubar', e.target.checked);
+                requestShowRequireRestartDialog();
+              }}
+            />
+          </ListItemSecondaryAction>
+        </ListItem>
+        {window.process.platform === 'darwin' && (
+          <>
+            <Divider />
+            <ListItem>
+              <ListItemText
+                primary="Swipe to navigate"
+                secondary={(
+                  <>
+                    <span>Navigate between pages with 3-finger gestures.</span>
+                    <br />
+                    <span>To enable it, you also need to change </span>
+                    <b>
+                      macOS Preferences &gt; Trackpad &gt; More Gestures &gt; Swipe between page
+                    </b>
+                    <span> to </span>
+                    <b>Swipe with three fingers</b>
+                    <span> or </span>
+                    <b>Swipe with two or three fingers.</b>
+                  </>
+                )}
+              />
+              <ListItemSecondaryAction>
+                <Switch
+                  color="primary"
+                  checked={swipeToNavigate}
+                  onChange={(e) => {
+                    requestSetPreference('swipeToNavigate', e.target.checked);
+                    requestShowRequireRestartDialog();
+                  }}
+                />
+              </ListItemSecondaryAction>
+            </ListItem>
+          </>
+        )}
+        <Divider />
+        <ListItem>
+          <ListItemText primary="Automatically check for updates" />
+          <ListItemSecondaryAction>
+            <Switch
+              color="primary"
+              checked={autoCheckForUpdates}
+              onChange={(e) => {
+                requestSetPreference('autoCheckForUpdates', e.target.checked);
+              }}
+            />
+          </ListItemSecondaryAction>
         </ListItem>
       </List>
     </Paper>
@@ -245,47 +305,44 @@ const Preferences = ({
             {window.Intl.DateTimeFormat().resolvedOptions().timeZone}
             )
           </ListItemText>
-          <Switch
-            color="primary"
-            checked={pauseNotificationsBySchedule}
-            onChange={(e) => {
-              requestSetPreference('pauseNotificationsBySchedule', e.target.checked);
-            }}
-            classes={{
-              switchBase: classes.switchBase,
-            }}
-          />
+          <ListItemSecondaryAction>
+            <Switch
+              color="primary"
+              checked={pauseNotificationsBySchedule}
+              onChange={(e) => {
+                requestSetPreference('pauseNotificationsBySchedule', e.target.checked);
+              }}
+            />
+          </ListItemSecondaryAction>
         </ListItem>
         <Divider />
         <ListItem>
           <ListItemText primary="Mute audio when notifications are paused" />
-          <Switch
-            color="primary"
-            checked={pauseNotificationsMuteAudio}
-            onChange={(e) => {
-              requestSetPreference('pauseNotificationsMuteAudio', e.target.checked);
-            }}
-            classes={{
-              switchBase: classes.switchBase,
-            }}
-          />
+          <ListItemSecondaryAction>
+            <Switch
+              color="primary"
+              checked={pauseNotificationsMuteAudio}
+              onChange={(e) => {
+                requestSetPreference('pauseNotificationsMuteAudio', e.target.checked);
+              }}
+            />
+          </ListItemSecondaryAction>
         </ListItem>
         {window.process.platform === 'darwin' && (
           <>
             <Divider />
             <ListItem>
               <ListItemText primary="Show unread count badge" />
-              <Switch
-                color="primary"
-                checked={unreadCountBadge}
-                onChange={(e) => {
-                  requestSetPreference('unreadCountBadge', e.target.checked);
-                  requestShowRequireRestartDialog();
-                }}
-                classes={{
-                  switchBase: classes.switchBase,
-                }}
-              />
+              <ListItemSecondaryAction>
+                <Switch
+                  color="primary"
+                  checked={unreadCountBadge}
+                  onChange={(e) => {
+                    requestSetPreference('unreadCountBadge', e.target.checked);
+                    requestShowRequireRestartDialog();
+                  }}
+                />
+              </ListItemSecondaryAction>
             </ListItem>
           </>
         )}
@@ -299,17 +356,16 @@ const Preferences = ({
       <List dense>
         <ListItem>
           <ListItemText primary="Spell check" />
-          <Switch
-            color="primary"
-            checked={spellChecker}
-            onChange={(e) => {
-              requestSetPreference('spellChecker', e.target.checked);
-              requestShowRequireRestartDialog();
-            }}
-            classes={{
-              switchBase: classes.switchBase,
-            }}
-          />
+          <ListItemSecondaryAction>
+            <Switch
+              color="primary"
+              checked={spellChecker}
+              onChange={(e) => {
+                requestSetPreference('spellChecker', e.target.checked);
+                requestShowRequireRestartDialog();
+              }}
+            />
+          </ListItemSecondaryAction>
         </ListItem>
         <Divider />
         <StatedMenu
@@ -336,80 +392,6 @@ const Preferences = ({
             </MenuItem>
           ))}
         </StatedMenu>
-      </List>
-    </Paper>
-
-    <Typography variant="subtitle2" className={classes.sectionTitle}>
-      Experience
-    </Typography>
-    <Paper className={classes.paper}>
-      <List dense>
-        <ListItem>
-          <ListItemText
-            primary={window.process.platform === 'win32'
-              ? 'Attach to taskbar' : 'Attach to menubar'}
-          />
-          <Switch
-            color="primary"
-            checked={attachToMenubar}
-            onChange={(e) => {
-              requestSetPreference('attachToMenubar', e.target.checked);
-              requestShowRequireRestartDialog();
-            }}
-            classes={{
-              switchBase: classes.switchBase,
-            }}
-          />
-        </ListItem>
-        <Divider />
-        {window.process.platform === 'darwin' && (
-          <>
-            <ListItem>
-              <ListItemText
-                primary="Swipe to navigate"
-                secondary={(
-                  <>
-                    <span>Navigate between pages with 3-finger gestures.</span>
-                    <br />
-                    <span>To enable it, you also need to change </span>
-                    <b>
-                      macOS Preferences &gt; Trackpad &gt; More Gestures &gt; Swipe between page
-                    </b>
-                    <span> to </span>
-                    <b>Swipe with three fingers</b>
-                    <span> or </span>
-                    <b>Swipe with two or three fingers.</b>
-                  </>
-                )}
-              />
-              <Switch
-                color="primary"
-                checked={swipeToNavigate}
-                onChange={(e) => {
-                  requestSetPreference('swipeToNavigate', e.target.checked);
-                  requestShowRequireRestartDialog();
-                }}
-                classes={{
-                  switchBase: classes.switchBase,
-                }}
-              />
-            </ListItem>
-            <Divider />
-          </>
-        )}
-        <ListItem>
-          <ListItemText primary="Automatically check for updates" />
-          <Switch
-            color="primary"
-            checked={autoCheckForUpdates}
-            onChange={(e) => {
-              requestSetPreference('autoCheckForUpdates', e.target.checked);
-            }}
-            classes={{
-              switchBase: classes.switchBase,
-            }}
-          />
-        </ListItem>
       </List>
     </Paper>
 
@@ -441,16 +423,15 @@ const Preferences = ({
         <Divider />
         <ListItem>
           <ListItemText primary="Ask where to save each file before downloading" />
-          <Switch
-            color="primary"
-            checked={askForDownloadPath}
-            onChange={(e) => {
-              requestSetPreference('askForDownloadPath', e.target.checked);
-            }}
-            classes={{
-              switchBase: classes.switchBase,
-            }}
-          />
+          <ListItemSecondaryAction>
+            <Switch
+              color="primary"
+              checked={askForDownloadPath}
+              onChange={(e) => {
+                requestSetPreference('askForDownloadPath', e.target.checked);
+              }}
+            />
+          </ListItemSecondaryAction>
         </ListItem>
       </List>
     </Paper>
@@ -462,32 +443,30 @@ const Preferences = ({
       <List dense>
         <ListItem>
           <ListItemText primary="Remember last page visited" />
-          <Switch
-            color="primary"
-            checked={rememberLastPageVisited}
-            onChange={(e) => {
-              requestSetPreference('rememberLastPageVisited', e.target.checked);
-              requestShowRequireRestartDialog();
-            }}
-            classes={{
-              switchBase: classes.switchBase,
-            }}
-          />
+          <ListItemSecondaryAction>
+            <Switch
+              color="primary"
+              checked={rememberLastPageVisited}
+              onChange={(e) => {
+                requestSetPreference('rememberLastPageVisited', e.target.checked);
+                requestShowRequireRestartDialog();
+              }}
+            />
+          </ListItemSecondaryAction>
         </ListItem>
         <Divider />
         <ListItem>
           <ListItemText primary="Share browsing data between workspaces" />
-          <Switch
-            color="primary"
-            checked={shareWorkspaceBrowsingData}
-            onChange={(e) => {
-              requestSetPreference('shareWorkspaceBrowsingData', e.target.checked);
-              requestShowRequireRestartDialog();
-            }}
-            classes={{
-              switchBase: classes.switchBase,
-            }}
-          />
+          <ListItemSecondaryAction>
+            <Switch
+              color="primary"
+              checked={shareWorkspaceBrowsingData}
+              onChange={(e) => {
+                requestSetPreference('shareWorkspaceBrowsingData', e.target.checked);
+                requestShowRequireRestartDialog();
+              }}
+            />
+          </ListItemSecondaryAction>
         </ListItem>
         <Divider />
         <ListItem button onClick={requestClearBrowsingData}>
@@ -507,30 +486,30 @@ const Preferences = ({
     <Paper className={classes.paper}>
       <List dense>
         {(hasMailWorkspace || isDefaultMailClient) && (
-        <>
-          {isDefaultMailClient ? (
-            <ListItem>
-              <ListItemText secondary={`${appJson.name} is your default email client.`} />
-            </ListItem>
-          ) : (
-            <ListItem>
-              <ListItemText primary="Default email client" secondary={`Make ${appJson.name} the default email client.`} />
-              <Button
-                variant="outlined"
-                size="small"
-                color="default"
-                className={classes.button}
-                onClick={() => {
-                  remote.app.setAsDefaultProtocolClient('mailto');
-                  onUpdateIsDefaultMailClient(remote.app.isDefaultProtocolClient('mailto'));
-                }}
-              >
+          <>
+            {isDefaultMailClient ? (
+              <ListItem>
+                <ListItemText secondary={`${appJson.name} is your default email client.`} />
+              </ListItem>
+            ) : (
+              <ListItem>
+                <ListItemText primary="Default email client" secondary={`Make ${appJson.name} the default email client.`} />
+                <Button
+                  variant="outlined"
+                  size="small"
+                  color="default"
+                  className={classes.button}
+                  onClick={() => {
+                    remote.app.setAsDefaultProtocolClient('mailto');
+                    onUpdateIsDefaultMailClient(remote.app.isDefaultProtocolClient('mailto'));
+                  }}
+                >
                 Make default
-              </Button>
-            </ListItem>
-          )}
-          <Divider />
-        </>
+                </Button>
+              </ListItem>
+            )}
+            <Divider />
+          </>
         )}
         {isDefaultWebBrowser ? (
           <ListItem>
@@ -558,32 +537,32 @@ const Preferences = ({
     </Paper>
 
     {window.process.platform !== 'linux' && (
-    <>
-      <Typography variant="subtitle2" className={classes.sectionTitle}>
+      <>
+        <Typography variant="subtitle2" className={classes.sectionTitle}>
         System
-      </Typography>
-      <Paper className={classes.paper}>
-        <List dense>
-          <StatedMenu
-            id="openAtLogin"
-            buttonElement={(
-              <ListItem button>
-                <ListItemText primary="Open at login" secondary={getOpenAtLoginString(openAtLogin)} />
-                <ChevronRightIcon color="action" />
-              </ListItem>
+        </Typography>
+        <Paper className={classes.paper}>
+          <List dense>
+            <StatedMenu
+              id="openAtLogin"
+              buttonElement={(
+                <ListItem button>
+                  <ListItemText primary="Open at login" secondary={getOpenAtLoginString(openAtLogin)} />
+                  <ChevronRightIcon color="action" />
+                </ListItem>
             )}
-          >
-            <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'yes')}>Yes</MenuItem>
-            <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'yes-hidden')}>Yes, but minimized</MenuItem>
-            <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'no')}>No</MenuItem>
-          </StatedMenu>
-        </List>
-      </Paper>
-    </>
+            >
+              <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'yes')}>Yes</MenuItem>
+              <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'yes-hidden')}>Yes, but minimized</MenuItem>
+              <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'no')}>No</MenuItem>
+            </StatedMenu>
+          </List>
+        </Paper>
+      </>
     )}
 
     <Typography variant="subtitle2" className={classes.sectionTitle}>
-      Developers
+      Advanced
     </Typography>
     <Paper className={classes.paper}>
       <List dense>

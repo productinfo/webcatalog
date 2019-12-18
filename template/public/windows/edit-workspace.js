@@ -7,20 +7,17 @@ const { getPreference } = require('../libs/preferences');
 const mainWindow = require('./main');
 
 let win;
-let activeId = null;
 
 const get = () => win;
 
 const create = (id) => {
   const attachToMenubar = getPreference('attachToMenubar');
 
-  activeId = id;
-
   global.editWorkspaceId = id;
 
   win = new BrowserWindow({
     width: 400,
-    height: 400,
+    height: 600,
     resizable: false,
     maximizable: false,
     minimizable: false,
@@ -45,7 +42,7 @@ const create = (id) => {
 const show = (id) => {
   if (win == null) {
     create(id);
-  } else if (id !== activeId) {
+  } else if (id !== global.editWorkspaceId) {
     win.close();
     create(id);
   } else {

@@ -125,18 +125,10 @@ window.onload = () => {
   });
 
   // overwrite gmail email discard button
-  if (window.location.href.startsWith('https://mail.google.com') && window.location.href.includes('source=mailto')) {
-    const checkExist = setInterval(() => {
-      if (document.getElementById(':qz')) {
-        const discardButton = document.getElementById(':qz');
-        // https://stackoverflow.com/a/46986927
-        discardButton.addEventListener('click', (e) => {
-          e.stopPropagation();
-          ipcRenderer.send('request-go-home');
-        }, true);
-        clearInterval(checkExist);
-      }
-    }, 100); // check every 100ms
+  if (window.location.href.startsWith('https://mail.google.com')) {
+    const node = document.createElement('script');
+    node.innerHTML = 'window.close = () => { window.location.href = \'https://mail.google.com\' }';
+    document.body.appendChild(node);
   }
 
   // Fix WhatsApp requires Google Chrome 49+ bug
@@ -174,8 +166,17 @@ window.onload = () => {
 // Communicate with the frame
 // Have to use this weird trick because contextIsolation: true
 ipcRenderer.on('should-pause-notifications-changed', (e, val) => {
-  console.log(e);
   window.postMessage({ type: 'should-pause-notifications-changed', val });
+});
+
+ipcRenderer.on('display-media-id-received', (e, val) => {
+  window.postMessage({ type: 'return-display-media-id', val });
+});
+
+window.addEventListener('message', (e) => {
+  if (!e.data || e.data.type !== 'get-display-media-id') return;
+
+  ipcRenderer.send('request-show-display-media-window');
 });
 
 // Fix Can't show file list of Google Drive
@@ -184,31 +185,31 @@ ipcRenderer.on('should-pause-notifications-changed', (e, val) => {
 // https://github.com/quanglam2807/singlebox/issues/21
 const initialShouldPauseNotifications = ipcRenderer.sendSync('get-pause-notifications-info') != null;
 webFrame.executeJavaScript(`
-window.chrome = {
-  runtime: {
-    sendMessage: () => {},
-    connect: () => {
-      return {
-        onMessage: {
-          addListener: () => {},
-          removeListener: () => {},
-        },
-        postMessage: () => {},
-        disconnect: () => {},
+(function() {
+  window.chrome = {
+    runtime: {
+      sendMessage: () => {},
+      connect: () => {
+        return {
+          onMessage: {
+            addListener: () => {},
+            removeListener: () => {},
+          },
+          postMessage: () => {},
+          disconnect: () => {},
+        }
       }
     }
   }
-}
 
-window.electronSafeIpc = {
-  send: () => null,
-  on: () => null,
-};
-window.desktop = undefined;
+  window.electronSafeIpc = {
+    send: () => null,
+    on: () => null,
+  };
+  window.desktop = undefined;
 
-// Customize Notification behavior
-// https://stackoverflow.com/questions/53390156/how-to-override-javascript-web-api-notification-object
-(function() {
+  // Customize Notification behavior
+  // https://stackoverflow.com/questions/53390156/how-to-override-javascript-web-api-notification-object
   const oldNotification = window.Notification;
   let shouldPauseNotifications = ${initialShouldPauseNotifications};
   window.addEventListener('message', function(e) {
@@ -224,8 +225,32 @@ window.desktop = undefined;
   window.Notification.requestPermission = oldNotification.requestPermission;
   Object.defineProperty(Notification, 'permission', {
     get() {
-      return 'granted';
+      return oldNotification.permission;
     }
   });
+
+  window.navigator.mediaDevices.getDisplayMedia = () => {
+    return new Promise((resolve, reject) => {
+      const listener = (e) => {
+        if (!e.data || e.data.type !== 'return-display-media-id') return;
+        if (e.data.val) { resolve(e.data.val); }
+        else { reject(new Error('Rejected')); }
+        window.removeEventListener('message', listener);
+      };
+      window.postMessage({ type: 'get-display-media-id' });
+      window.addEventListener('message', listener);
+    })
+      .then((id) => {
+        return navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            mandatory: {
+              chromeMediaSource: 'desktop',
+              chromeMediaSourceId: id,
+            }
+          }
+        });
+      });
+  };
 })();
 `);

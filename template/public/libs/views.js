@@ -1,5 +1,6 @@
 const {
   BrowserView,
+  BrowserWindow,
   app,
   session,
   shell,
@@ -22,6 +23,9 @@ const sendToAllWindows = require('./send-to-all-windows');
 const views = {};
 const badgeCounts = {};
 const didFailLoad = {};
+let activeId;
+let shouldMuteAudio;
+let shouldPauseNotifications;
 
 const extractDomain = (fullUrl) => {
   const matches = fullUrl.match(/^https?:\/\/([^/?#]+)(?:[/?#]|$)/i);
@@ -108,7 +112,7 @@ const addView = (browserWindow, workspace) => {
     }
   });
 
-  view.webContents.on('new-window', (e, nextUrl, frameName, disposition, options) => {
+  const handleNewWindow = (e, nextUrl, frameName, disposition, options) => {
     const appDomain = extractDomain(getWorkspace(workspace.id).homeUrl || appJson.url);
     const nextDomain = extractDomain(nextUrl);
 
@@ -118,9 +122,18 @@ const addView = (browserWindow, workspace) => {
       disposition === 'new-window'
     ) {
       // https://gist.github.com/Gvozd/2cec0c8c510a707854e439fb15c561b0
+      /*
       Object.assign(options, {
         parent: browserWindow,
       });
+      */
+      e.preventDefault();
+      Object.assign(options, {
+        parent: browserWindow,
+      });
+      const popupWin = new BrowserWindow(options);
+      popupWin.webContents.on('new-window', handleNewWindow);
+      e.newGuest = popupWin;
       return;
     }
 
@@ -133,7 +146,7 @@ const addView = (browserWindow, workspace) => {
       nextDomain === appDomain
     ) {
       e.preventDefault();
-      view.webContents.loadURL(nextUrl);
+      e.sender.loadURL(nextUrl);
       return;
     }
 
@@ -142,7 +155,8 @@ const addView = (browserWindow, workspace) => {
       e.preventDefault();
       shell.openExternal(nextUrl);
     }
-  });
+  };
+  view.webContents.on('new-window', handleNewWindow);
 
   // Handle downloads
   // https://electronjs.org/docs/api/download-item
@@ -201,9 +215,19 @@ const addView = (browserWindow, workspace) => {
     view.webContents.send('update-target-url', url);
   });
 
+  // Handle audio & notification preferences
+  if (shouldMuteAudio !== undefined) {
+    view.webContents.setAudioMuted(shouldMuteAudio);
+  }
+  view.webContents.once('did-stop-loading', () => {
+    view.webContents.send('should-pause-notifications-changed', workspace.disableNotifications || shouldPauseNotifications);
+  });
+
   views[workspace.id] = view;
 
   if (workspace.active) {
+    activeId = workspace.id;
+
     browserWindow.setBrowserView(view);
 
     const contentSize = browserWindow.getContentSize();
@@ -236,38 +260,89 @@ const setActiveView = (browserWindow, id) => {
   currentView.webContents.stopFindInPage('clearSelection');
   browserWindow.send('close-find-in-page');
 
-  const view = views[id];
-  browserWindow.setBrowserView(view);
+  const oldActiveId = activeId;
+  activeId = id;
 
-  const contentSize = browserWindow.getContentSize();
+  if (views[id] == null) {
+    addView(browserWindow, getWorkspace(id));
 
-  const offsetTitlebar = process.platform !== 'darwin' || global.showSidebar || global.attachToMenubar ? 0 : 22;
-  const x = global.showSidebar ? 68 : 0;
-  const y = global.showNavigationBar ? 36 + offsetTitlebar : 0 + offsetTitlebar;
+    sendToAllWindows('update-is-loading', views[id].webContents.isLoading());
+    sendToAllWindows('update-did-fail-load', Boolean(didFailLoad[id]));
+  } else {
+    const view = views[id];
+    browserWindow.setBrowserView(view);
 
-  view.setBounds({
-    x,
-    y,
-    width: contentSize[0] - x,
-    height: contentSize[1] - y,
-  });
-  view.setAutoResize({
-    width: true,
-    height: true,
-  });
+    const contentSize = browserWindow.getContentSize();
 
-  // focus on webview
-  // https://github.com/quanglam2807/webcatalog/issues/398
-  view.webContents.focus();
+    const offsetTitlebar = process.platform !== 'darwin' || global.showSidebar || global.attachToMenubar ? 0 : 22;
+    const x = global.showSidebar ? 68 : 0;
+    const y = global.showNavigationBar ? 36 + offsetTitlebar : 0 + offsetTitlebar;
 
-  sendToAllWindows('update-is-loading', view.webContents.isLoading());
-  sendToAllWindows('update-did-fail-load', Boolean(didFailLoad[id]));
+    view.setBounds({
+      x,
+      y,
+      width: contentSize[0] - x,
+      height: contentSize[1] - y,
+    });
+    view.setAutoResize({
+      width: true,
+      height: true,
+    });
+
+    // focus on webview
+    // https://github.com/quanglam2807/webcatalog/issues/398
+    view.webContents.focus();
+
+    sendToAllWindows('update-is-loading', view.webContents.isLoading());
+    sendToAllWindows('update-did-fail-load', Boolean(didFailLoad[id]));
+  }
+
+  // hibernate old view
+  if (oldActiveId !== activeId) {
+    const oldWorkspace = getWorkspace(oldActiveId);
+    if (oldWorkspace.hibernateWhenUnused && views[oldWorkspace.id] != null) {
+      views[oldWorkspace.id].destroy();
+      views[oldWorkspace.id] = null;
+    }
+  }
 };
 
 const removeView = (id) => {
   const view = views[id];
   session.fromPartition(`persist:${id}`).clearStorageData();
-  view.destroy();
+  if (view != null) {
+    view.destroy();
+  }
+  delete views[id];
+};
+
+const setViewsAudioPref = (_shouldMuteAudio) => {
+  if (_shouldMuteAudio !== undefined) {
+    shouldMuteAudio = _shouldMuteAudio;
+  }
+  Object.keys(views).forEach((id) => {
+    const view = views[id];
+    if (view != null) {
+      const workspace = getWorkspace(id);
+      view.webContents.setAudioMuted(workspace.disableAudio || shouldMuteAudio);
+    }
+  });
+};
+
+const setViewsNotificationsPref = (_shouldPauseNotifications) => {
+  if (_shouldPauseNotifications !== undefined) {
+    shouldPauseNotifications = _shouldPauseNotifications;
+  }
+  Object.keys(views).forEach((id) => {
+    const view = views[id];
+    if (view != null) {
+      const workspace = getWorkspace(id);
+      view.webContents.send(
+        'should-pause-notifications-changed',
+        Boolean(workspace.disableNotifications || shouldPauseNotifications),
+      );
+    }
+  });
 };
 
 module.exports = {
@@ -275,4 +350,6 @@ module.exports = {
   getView,
   setActiveView,
   removeView,
+  setViewsAudioPref,
+  setViewsNotificationsPref,
 };

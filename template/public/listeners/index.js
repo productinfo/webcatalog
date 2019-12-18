@@ -1,11 +1,12 @@
 const {
+  BrowserView,
+  Notification,
   app,
   dialog,
   ipcMain,
-  shell,
   // nativeTheme,
+  shell,
   systemPreferences,
-  Notification,
 } = require('electron');
 
 const {
@@ -25,17 +26,17 @@ const {
   getActiveWorkspace,
   getWorkspace,
   getWorkspaces,
-  setWorkspace,
   setWorkspacePicture,
   removeWorkspacePicture,
 } = require('../libs/workspaces');
 
 const {
-  createWorkspaceView,
-  setActiveWorkspaceView,
-  removeWorkspaceView,
   clearBrowsingData,
+  createWorkspaceView,
   loadURL,
+  removeWorkspaceView,
+  setActiveWorkspaceView,
+  setWorkspaceView,
 } = require('../libs/workspaces-views');
 
 const {
@@ -47,11 +48,12 @@ const createMenu = require('../libs/create-menu');
 const sendToAllWindows = require('../libs/send-to-all-windows');
 const { checkForUpdates } = require('../libs/updater');
 
-const mainWindow = require('../windows/main');
-const preferencesWindow = require('../windows/preferences');
-const editWorkspaceWindow = require('../windows/edit-workspace');
 const codeInjectionWindow = require('../windows/code-injection');
+const displayMediaWindow = require('../windows/display-media');
+const editWorkspaceWindow = require('../windows/edit-workspace');
+const mainWindow = require('../windows/main');
 const notificationsWindow = require('../windows/notifications');
+const preferencesWindow = require('../windows/preferences');
 
 const appJson = require('../app.json');
 
@@ -240,7 +242,7 @@ const loadListeners = () => {
   });
 
   ipcMain.on('request-set-workspace', (e, id, opts) => {
-    setWorkspace(id, opts);
+    setWorkspaceView(id, opts);
     createMenu();
   });
 
@@ -345,6 +347,11 @@ const loadListeners = () => {
     */
     setPreference('themeSource', val);
     sendToAllWindows('native-theme-updated');
+  });
+
+  ipcMain.on('request-show-display-media-window', (e) => {
+    const viewId = BrowserView.fromWebContents(e.sender).id;
+    displayMediaWindow.show(viewId);
   });
 };
 

@@ -3,6 +3,12 @@ import PropTypes from 'prop-types';
 
 import Button from '@material-ui/core/Button';
 import TextField from '@material-ui/core/TextField';
+import Divider from '@material-ui/core/Divider';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemText from '@material-ui/core/ListItemText';
+import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
+import Switch from '@material-ui/core/Switch';
 
 import connectComponent from '../../helpers/connect-component';
 import getAvatarText from '../../helpers/get-avatar-text';
@@ -19,7 +25,10 @@ const styles = (theme) => ({
     background: theme.palette.background.paper,
     height: '100vh',
     width: '100vw',
-    padding: theme.spacing.unit * 3,
+    paddingTop: theme.spacing.unit * 3,
+    paddingBottom: theme.spacing.unit * 3,
+    paddingLeft: theme.spacing.unit * 2,
+    paddingRight: theme.spacing.unit * 2,
     display: 'flex',
     flexDirection: 'column',
   },
@@ -69,10 +78,13 @@ const styles = (theme) => ({
 
 const EditWorkspace = ({
   classes,
+  disableAudio,
+  disableNotifications,
+  hibernateWhenUnused,
   homeUrl,
   homeUrlError,
-  isMailApp,
   id,
+  isMailApp,
   name,
   onSave,
   onUpdateForm,
@@ -158,6 +170,39 @@ const EditWorkspace = ({
           </Button>
         </div>
       </div>
+      <List>
+        <Divider />
+        <ListItem disableGutters>
+          <ListItemText primary="Hibernate when not used" secondary="Save CPU usage, memory and battery." />
+          <ListItemSecondaryAction>
+            <Switch
+              color="primary"
+              checked={hibernateWhenUnused}
+              onChange={(e) => onUpdateForm({ hibernateWhenUnused: e.target.checked })}
+            />
+          </ListItemSecondaryAction>
+        </ListItem>
+        <ListItem disableGutters>
+          <ListItemText primary="Disable notifications" secondary="Prevent workspace from sending notifications." />
+          <ListItemSecondaryAction>
+            <Switch
+              color="primary"
+              checked={disableNotifications}
+              onChange={(e) => onUpdateForm({ disableNotifications: e.target.checked })}
+            />
+          </ListItemSecondaryAction>
+        </ListItem>
+        <ListItem disableGutters>
+          <ListItemText primary="Disable audio" secondary="Prevent workspace from playing audio." />
+          <ListItemSecondaryAction>
+            <Switch
+              color="primary"
+              checked={disableAudio}
+              onChange={(e) => onUpdateForm({ disableAudio: e.target.checked })}
+            />
+          </ListItemSecondaryAction>
+        </ListItem>
+      </List>
     </div>
     <div>
       <Button color="primary" variant="contained" className={classes.button} onClick={onSave}>
@@ -174,10 +219,13 @@ EditWorkspace.defaultProps = {
 
 EditWorkspace.propTypes = {
   classes: PropTypes.object.isRequired,
+  disableAudio: PropTypes.bool.isRequired,
+  disableNotifications: PropTypes.bool.isRequired,
+  hibernateWhenUnused: PropTypes.bool.isRequired,
   homeUrl: PropTypes.string.isRequired,
   homeUrlError: PropTypes.string,
-  isMailApp: PropTypes.bool.isRequired,
   id: PropTypes.string.isRequired,
+  isMailApp: PropTypes.bool.isRequired,
   name: PropTypes.string.isRequired,
   onSave: PropTypes.func.isRequired,
   onUpdateForm: PropTypes.func.isRequired,
@@ -186,10 +234,13 @@ EditWorkspace.propTypes = {
 };
 
 const mapStateToProps = (state) => ({
+  disableAudio: Boolean(state.editWorkspace.form.disableAudio),
+  disableNotifications: Boolean(state.editWorkspace.form.disableNotifications),
+  hibernateWhenUnused: Boolean(state.editWorkspace.form.hibernateWhenUnused),
   homeUrl: state.editWorkspace.form.homeUrl,
   homeUrlError: state.editWorkspace.form.homeUrlError,
-  isMailApp: Boolean(getMailtoUrl(state.editWorkspace.form.homeUrl)),
   id: state.editWorkspace.form.id,
+  isMailApp: Boolean(getMailtoUrl(state.editWorkspace.form.homeUrl)),
   name: state.editWorkspace.form.name,
   order: state.editWorkspace.form.order,
   picturePath: state.editWorkspace.form.picturePath,

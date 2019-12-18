@@ -1,17 +1,18 @@
 const {
   Menu,
   clipboard,
+  ipcMain,
   shell,
-  dialog,
 } = require('electron');
 
 const appJson = require('../app.json');
 
 const aboutWindow = require('../windows/about');
-const mainWindow = require('../windows/main');
-const preferencesWindow = require('../windows/preferences');
+const displayMediaWindow = require('../windows/display-media');
 const editWorkspaceWindow = require('../windows/edit-workspace');
+const mainWindow = require('../windows/main');
 const notificationsWindow = require('../windows/notifications');
+const preferencesWindow = require('../windows/preferences');
 
 const {
   getWorkspaces,
@@ -24,7 +25,6 @@ const {
   createWorkspaceView,
   setActiveWorkspaceView,
   removeWorkspaceView,
-  clearBrowsingData,
 } = require('./workspaces-views');
 
 const {
@@ -206,6 +206,19 @@ function createMenu() {
                 }
               },
             },
+            {
+              label: 'Display Media Window',
+              click: () => {
+                const win = displayMediaWindow.get();
+                if (win != null) {
+                  if (win.webContents.isDevToolsOpened()) {
+                    win.webContents.closeDevTools();
+                  } else {
+                    win.webContents.openDevTools({ mode: 'detach' });
+                  }
+                }
+              },
+            },
             { type: 'separator' },
           ],
         },
@@ -331,18 +344,7 @@ function createMenu() {
         {
           label: 'Clear Browsing Data...',
           accelerator: 'CmdOrCtrl+Shift+Delete',
-          click: () => {
-            dialog.showMessageBox(preferencesWindow.get() || mainWindow.get(), {
-              type: 'question',
-              buttons: ['Clear Now', 'Cancel'],
-              message: 'Are you sure? All browsing data will be cleared. This action cannot be undone.',
-              cancelId: 1,
-            }).then(({ response }) => {
-              if (response === 0) {
-                clearBrowsingData();
-              }
-            }).catch(console.log); // eslint-disable-line
-          },
+          click: () => ipcMain.emit('request-clear-browsing-data'),
         },
         { type: 'separator' },
         { role: 'services', submenu: [] },
@@ -381,18 +383,7 @@ function createMenu() {
         {
           label: 'Clear Browsing Data...',
           accelerator: 'CmdOrCtrl+Shift+Delete',
-          click: () => {
-            dialog.showMessageBox(preferencesWindow.get() || mainWindow.get(), {
-              type: 'question',
-              buttons: ['Clear Now', 'Cancel'],
-              message: 'Are you sure? All browsing data will be cleared. This action cannot be undone.',
-              cancelId: 1,
-            }).then(({ response }) => {
-              if (response === 0) {
-                clearBrowsingData();
-              }
-            }).catch(console.log); // eslint-disable-line
-          },
+          click: () => ipcMain.emit('request-clear-browsing-data'),
         },
         { type: 'separator' },
         { role: 'quit', label: 'Exit' },
