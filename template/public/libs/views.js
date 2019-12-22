@@ -10,9 +10,7 @@ const fsExtra = require('fs-extra');
 
 const appJson = require('../app.json');
 
-const {
-  getPreferences
-} = require('./preferences');
+const { getPreferences } = require('./preferences');
 const {
   getWorkspace,
   setWorkspace,
@@ -114,44 +112,41 @@ const addView = (browserWindow, workspace) => {
 
   const handleNewWindow = (e, nextUrl, frameName, disposition, options) => {
     const appDomain = extractDomain(getWorkspace(workspace.id).homeUrl || appJson.url);
+    const currentDomain = extractDomain(e.sender.getURL());
     const nextDomain = extractDomain(nextUrl);
-
-    // open new window normally if requested, or domain is not defined(about:)
-    if (
-      nextDomain === null ||
-      disposition === 'new-window'
-    ) {
-      // https://gist.github.com/Gvozd/2cec0c8c510a707854e439fb15c561b0
-      /*
-      Object.assign(options, {
-        parent: browserWindow,
-      });
-      */
-      e.preventDefault();
-      Object.assign(options, {
-        parent: browserWindow,
-      });
-      const popupWin = new BrowserWindow(options);
-      popupWin.webContents.on('new-window', handleNewWindow);
-      e.newGuest = popupWin;
-      return;
-    }
 
     // load in same window
     if (
       // Google: Switch account
       nextDomain === 'accounts.google.com'
       // https://github.com/quanglam2807/webcatalog/issues/315
-      ||
-      nextDomain === appDomain
+      || ((appDomain.includes('asana.com') || currentDomain.includes('asana.com')) && nextDomain.includes('asana.com'))
+      || (disposition === 'foreground-tab' && (nextDomain === appDomain || nextDomain === currentDomain))
     ) {
       e.preventDefault();
       e.sender.loadURL(nextUrl);
       return;
     }
 
+    // open new window
+    if (nextDomain === appDomain || nextDomain === currentDomain) {
+      // https://gist.github.com/Gvozd/2cec0c8c510a707854e439fb15c561b0
+      e.preventDefault();
+      const newOptions = {
+        ...options,
+        parent: browserWindow,
+      };
+      const popupWin = new BrowserWindow(newOptions);
+      popupWin.webContents.on('new-window', handleNewWindow);
+      e.newGuest = popupWin;
+      return;
+    }
+
     // open external url in browser
-    if (disposition === 'foreground-tab') {
+    if (
+      nextDomain != null
+      && (disposition === 'foreground-tab' || disposition === 'background-tab')
+    ) {
       e.preventDefault();
       shell.openExternal(nextUrl);
     }
@@ -178,8 +173,16 @@ const addView = (browserWindow, workspace) => {
   // Hide Electron from UA to improve compatibility
   // https://github.com/quanglam2807/webcatalog/issues/182
   let uaStr = view.webContents.getUserAgent();
+  // Fix WhatsApp requires Google Chrome 49+ bug
   uaStr = uaStr.replace(` ${app.getName()}/${app.getVersion()}`, '');
+  // Hide Electron from UA to improve compatibility
+  // https://github.com/quanglam2807/webcatalog/issues/182
   uaStr = uaStr.replace(` Electron/${process.versions.electron}`, '');
+  // https://github.com/meetfranz/franz/issues/1720#issuecomment-566460763
+  const homeDomain = extractDomain(workspace.homeUrl || appJson.url);
+  if (homeDomain.includes('google.com') || homeDomain.includes('gmail.com')) {
+    uaStr += ' Edge/18.18875'; // mock EdgeHTML Edge (mocking Chromium-based Edge doesn't work)
+  }
   uaStr = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.146 Safari/537.36";
   view.webContents.setUserAgent(uaStr);
 
@@ -248,8 +251,8 @@ const addView = (browserWindow, workspace) => {
     });
   }
 
-  view.webContents.loadURL((rememberLastPageVisited && workspace.lastUrl) ||
-    workspace.homeUrl || appJson.url);
+  view.webContents.loadURL((rememberLastPageVisited && workspace.lastUrl)
+  || workspace.homeUrl || appJson.url);
 };
 
 const getView = (id) => views[id];
