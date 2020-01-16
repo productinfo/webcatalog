@@ -8,6 +8,7 @@ import Typography from '@material-ui/core/Typography';
 
 import NotificationsIcon from '@material-ui/icons/Notifications';
 import NotificationsPausedIcon from '@material-ui/icons/NotificationsPaused';
+import SettingsIcon from '@material-ui/icons/Settings';
 
 import { sortableContainer, sortableElement } from 'react-sortable-hoc';
 
@@ -21,11 +22,14 @@ import FakeTitleBar from './fake-title-bar';
 
 import {
   requestCreateWorkspace,
-  requestSetWorkspace,
-  requestSetActiveWorkspace,
+  requestHibernateWorkspace,
   requestRemoveWorkspace,
+  requestSetActiveWorkspace,
+  requestSetWorkspace,
   requestShowEditWorkspaceWindow,
   requestShowNotificationsWindow,
+  requestShowPreferencesWindow,
+  requestWakeUpWorkspace,
 } from '../../senders';
 
 const { remote } = window.require('electron');
@@ -82,12 +86,16 @@ const styles = (theme) => ({
     cursor: 'grabbing !important',
     pointerEvents: 'auto !important',
   },
+  end: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
 });
 
 const SortableItem = sortableElement(({ value }) => {
   const { workspace, index } = value;
   const {
-    active, id, name, badgeCount, picturePath,
+    active, id, name, badgeCount, picturePath, hibernated,
   } = workspace;
   return (
     <WorkspaceSelector
@@ -112,6 +120,19 @@ const SortableItem = sortableElement(({ value }) => {
             click: () => requestRemoveWorkspace(id),
           },
         ];
+
+        if (!active) {
+          template.splice(1, 0, {
+            label: hibernated ? 'Wake Up Workspace' : 'Hibernate Workspace',
+            click: () => {
+              if (hibernated) {
+                return requestWakeUpWorkspace(id);
+              }
+              return requestHibernateWorkspace(id);
+            },
+          });
+        }
+
         const menu = remote.Menu.buildFromTemplate(template);
 
         menu.popup(remote.getCurrentWindow());
@@ -169,6 +190,11 @@ const Main = ({
               <IconButton aria-label="Notifications" onClick={requestShowNotificationsWindow} className={classes.iconButton}>
                 {shouldPauseNotifications ? <NotificationsPausedIcon /> : <NotificationsIcon />}
               </IconButton>
+              {window.mode === 'menubar' && (
+                <IconButton aria-label="Preferences" onClick={requestShowPreferencesWindow} className={classes.iconButton}>
+                  <SettingsIcon />
+                </IconButton>
+              )}
             </div>
             )}
           </div>
@@ -217,7 +243,10 @@ const mapStateToProps = (state) => ({
   didFailLoad: state.general.didFailLoad,
   isFullScreen: state.general.isFullScreen,
   isLoading: state.general.isLoading,
-  navigationBar: state.preferences.navigationBar,
+  navigationBar: (window.process.platform === 'linux'
+    && state.preferences.attachToMenubar
+    && !state.preferences.sidebar)
+    || state.preferences.navigationBar,
   shouldPauseNotifications: state.notifications.pauseNotificationsInfo !== null,
   sidebar: state.preferences.sidebar,
   workspaces: state.workspaces,

@@ -177,7 +177,7 @@ const AppCard = (props) => {
         <StatedMenu
           id={`more-menu-${id}`}
           buttonElement={(
-            <IconButton aria-label="Delete" classes={{ root: classes.topRight }}>
+            <IconButton aria-label="More Options" classes={{ root: classes.topRight }}>
               <MoreVertIcon fontSize="small" />
             </IconButton>
           )}
@@ -271,7 +271,7 @@ const mapStateToProps = (state, ownProps) => {
     status: app ? app.status : null,
     engine: app ? app.engine : null,
     version: app ? app.version : null,
-    cancelable: app ? app.cancelable : false,
+    cancelable: Boolean(app ? app.cancelable : false),
   };
 };
 

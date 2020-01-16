@@ -6,6 +6,7 @@ const {
   systemPreferences,
   shell,
 } = require('electron');
+const { autoUpdater } = require('electron-updater');
 
 const sendToAllWindows = require('../libs/send-to-all-windows');
 const openApp = require('../libs/app-management/open-app');
@@ -117,8 +118,19 @@ const loadListeners = () => {
   });
 
   // App Management
+  let scanningPromise = Promise.resolve();
   ipcMain.on('request-get-installed-apps', () => {
-    getInstalledAppsAsync();
+    scanningPromise = scanningPromise
+      .then(() => getInstalledAppsAsync())
+      .catch((error) => {
+        dialog.showMessageBox(mainWindow.get(), {
+          type: 'error',
+          message: `Failed to scan for installed apps. (${error.stack})`,
+          buttons: ['OK'],
+          cancelId: 0,
+          defaultId: 0,
+        });
+      });
   });
 
   ipcMain.on('request-open-app', (e, id, name) => openApp(id, name));
@@ -183,6 +195,11 @@ const loadListeners = () => {
       return installAppAsync(engine, id, name, url, icon)
         .then(() => {
           e.sender.send('set-app', id, {
+            engine,
+            id,
+            name,
+            url,
+            icon,
             version: packageJson.templateVersion,
             status: 'INSTALLED',
           });
@@ -297,6 +314,30 @@ const loadListeners = () => {
     */
     setPreference('themeSource', val);
     sendToAllWindows('native-theme-updated');
+  });
+
+  ipcMain.on('request-quit', () => {
+    app.quit();
+  });
+
+  ipcMain.on('request-check-for-updates', (e, isSilent) => {
+    // https://github.com/electron-userland/electron-builder/issues/4028
+    if (!autoUpdater.isUpdaterActive()) return;
+
+    // restart & apply updates
+    if (global.updaterObj && global.updaterObj.status === 'update-downloaded') {
+      setImmediate(() => {
+        app.removeAllListeners('window-all-closed');
+        if (mainWindow.get() != null) {
+          mainWindow.get().close();
+        }
+        autoUpdater.quitAndInstall(false);
+      });
+    }
+
+    // check for updates
+    global.updateSilent = Boolean(isSilent);
+    autoUpdater.checkForUpdates();
   });
 };
 

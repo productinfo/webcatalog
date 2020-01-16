@@ -21,18 +21,52 @@ const sendToAllWindows = require('./send-to-all-windows');
 const views = {};
 const badgeCounts = {};
 const didFailLoad = {};
-let activeId;
 let shouldMuteAudio;
 let shouldPauseNotifications;
 
 const extractDomain = (fullUrl) => {
   const matches = fullUrl.match(/^https?:\/\/([^/?#]+)(?:[/?#]|$)/i);
   const domain = matches && matches[1];
-  return domain ? domain.replace('www.', '') : null;
+  // https://stackoverflow.com/a/9928725
+  return domain ? domain.replace(/^(www\.)/, '') : null;
+};
+
+// https://stackoverflow.com/a/14645182
+const isSubdomain = (url) => {
+  const regex = new RegExp(/^([a-z]+:\/{2})?([\w-]+\.[\w-]+\.\w+)$/);
+  return !!url.match(regex); // make sure it returns boolean
+};
+
+const equivalentDomain = (domain) => {
+  if (!domain) return null;
+
+  let eDomain = domain;
+
+  const prefixes = ['www', 'app', 'login', 'go', 'accounts', 'open'];
+  // app.portcast.io ~ portcast.io
+  // login.xero.com ~ xero.com
+  // go.xero.com ~ xero.com
+  // accounts.google.com ~ google.com
+  // open.spotify.com ~ spotify.com
+
+  // remove one by one not to break domain
+  prefixes.forEach((prefix) => {
+    // check if subdomain, if not return the domain
+    if (isSubdomain(eDomain)) {
+      // https://stackoverflow.com/a/9928725
+      const regex = new RegExp(`^(${prefix}.)`);
+      eDomain = eDomain.replace(regex, '');
+    }
+  });
+
+  return eDomain;
 };
 
 const addView = (browserWindow, workspace) => {
+  if (views[workspace.id] != null) return;
+
   const {
+    customUserAgent,
     rememberLastPageVisited,
     shareWorkspaceBrowsingData,
     unreadCountBadge,
@@ -46,6 +80,46 @@ const addView = (browserWindow, workspace) => {
       partition: shareWorkspaceBrowsingData ? 'persist:shared' : `persist:${workspace.id}`,
       preload: path.join(__dirname, '..', 'preload', 'view.js'),
     },
+  });
+
+  let adjustUserAgentByUrl = () => false;
+  if (customUserAgent) {
+    view.webContents.setUserAgent(customUserAgent);
+  } else {
+    // Hide Electron from UA to improve compatibility
+    // https://github.com/quanglam2807/webcatalog/issues/182
+    const uaStr = view.webContents.getUserAgent();
+    const commonUaStr = uaStr
+      // Fix WhatsApp requires Google Chrome 49+ bug
+      .replace(` ${app.getName()}/${app.getVersion()}`, '')
+      // Hide Electron from UA to improve compatibility
+      // https://github.com/quanglam2807/webcatalog/issues/182
+      .replace(` Electron/${process.versions.electron}`, '');
+    commonUaStr = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36";
+    view.webContents.setUserAgent(commonUaStr);
+
+    // fix Google prevents signing in because of security concerns
+    // https://github.com/quanglam2807/webcatalog/issues/455
+    // https://github.com/meetfranz/franz/issues/1720#issuecomment-566460763
+//    const fakedEdgeUaStr = `${commonUaStr} Edge/18.18875`;
+//    adjustUserAgentByUrl = (url) => {
+//      const navigatedDomain = extractDomain(url);
+//      const currentUaStr = view.webContents.getUserAgent();
+//      if (navigatedDomain === 'accounts.google.com') {
+//        if (currentUaStr !== fakedEdgeUaStr) {
+//          view.webContents.setUserAgent(fakedEdgeUaStr);
+//          return true;
+//        }
+//      } else if (currentUaStr !== commonUaStr) {
+//        view.webContents.setUserAgent(commonUaStr);
+//        return true;
+//      }
+//      return false;
+//    };
+  }
+
+  view.webContents.on('will-navigate', (e, url) => {
+    adjustUserAgentByUrl(url);
   });
 
   view.webContents.on('did-start-loading', () => {
@@ -96,7 +170,18 @@ const addView = (browserWindow, workspace) => {
     }
   });
 
-  view.webContents.on('did-navigate', () => {
+  view.webContents.on('did-navigate', (e, url) => {
+    // fix Google prevents signing in because of security concerns
+    // https://github.com/quanglam2807/webcatalog/issues/455
+    // https://github.com/meetfranz/franz/issues/1720#issuecomment-566460763
+    // will-navigate doesn't trigger for loadURL, goBack, goForward
+    // so user agent to needed to be double check here
+    // not the best solution as page will be unexpectedly reloaded
+    // but it won't happen very often
+    if (adjustUserAgentByUrl(url)) {
+      view.webContents.reload();
+    }
+
     if (getWorkspace(workspace.id).active) {
       sendToAllWindows('update-can-go-back', view.webContents.canGoBack());
       sendToAllWindows('update-can-go-forward', view.webContents.canGoForward());
@@ -124,12 +209,14 @@ const addView = (browserWindow, workspace) => {
       || (disposition === 'foreground-tab' && (nextDomain === appDomain || nextDomain === currentDomain))
     ) {
       e.preventDefault();
+      adjustUserAgentByUrl(nextUrl);
       e.sender.loadURL(nextUrl);
       return;
     }
 
     // open new window
-    if (nextDomain === appDomain || nextDomain === currentDomain) {
+    if (equivalentDomain(nextDomain) === equivalentDomain(appDomain)
+     || equivalentDomain(nextDomain) === equivalentDomain(currentDomain)) {
       // https://gist.github.com/Gvozd/2cec0c8c510a707854e439fb15c561b0
       e.preventDefault();
       const newOptions = {
@@ -149,6 +236,37 @@ const addView = (browserWindow, workspace) => {
     ) {
       e.preventDefault();
       shell.openExternal(nextUrl);
+      return;
+    }
+
+    // App tries to open external link using JS
+    // nextURL === 'about:blank' but then window will redirect to the external URL
+    // https://github.com/quanglam2807/webcatalog/issues/467#issuecomment-569857721
+    if (
+      nextDomain === null
+      && (disposition === 'foreground-tab' || disposition === 'background-tab')
+    ) {
+      e.preventDefault();
+      const newOptions = {
+        ...options,
+        show: false,
+        parent: browserWindow,
+      };
+      const popupWin = new BrowserWindow(newOptions);
+      popupWin.webContents.on('new-window', handleNewWindow);
+      popupWin.webContents.once('will-navigate', (_, url) => {
+        const retrievedDomain = extractDomain(url);
+        // if the window is used for the current app, then use default behavior
+        if (equivalentDomain(retrievedDomain) === equivalentDomain(appDomain)
+         || equivalentDomain(retrievedDomain) === equivalentDomain(currentDomain)) {
+          popupWin.show();
+        } else { // if not, open in browser
+          e.preventDefault();
+          shell.openExternal(url);
+          popupWin.close();
+        }
+      });
+      e.newGuest = popupWin;
     }
   };
   view.webContents.on('new-window', handleNewWindow);
@@ -170,22 +288,6 @@ const addView = (browserWindow, workspace) => {
     }
   });
 
-  // Hide Electron from UA to improve compatibility
-  // https://github.com/quanglam2807/webcatalog/issues/182
-  let uaStr = view.webContents.getUserAgent();
-  // Fix WhatsApp requires Google Chrome 49+ bug
-  uaStr = uaStr.replace(` ${app.getName()}/${app.getVersion()}`, '');
-  // Hide Electron from UA to improve compatibility
-  // https://github.com/quanglam2807/webcatalog/issues/182
-  uaStr = uaStr.replace(` Electron/${process.versions.electron}`, '');
-  // https://github.com/meetfranz/franz/issues/1720#issuecomment-566460763
-  const homeDomain = extractDomain(workspace.homeUrl || appJson.url);
-  if (homeDomain.includes('google.com') || homeDomain.includes('gmail.com')) {
-    uaStr += ' Edge/18.18875'; // mock EdgeHTML Edge (mocking Chromium-based Edge doesn't work)
-  }
-  uaStr = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.146 Safari/537.36";
-  view.webContents.setUserAgent(uaStr);
-
   // Unread count badge
   if (unreadCountBadge) {
     view.webContents.on('page-title-updated', (e, title) => {
@@ -205,6 +307,17 @@ const addView = (browserWindow, workspace) => {
       });
 
       app.setBadgeCount(count);
+
+      if (process.platform === 'win32') {
+        if (count > 0) {
+          browserWindow.setOverlayIcon(
+            path.resolve(__dirname, '..', 'overlay-icon.png'),
+            `You have ${count} new messages.`,
+          );
+        } else {
+          browserWindow.setOverlayIcon(null, '');
+        }
+      }
     });
   }
 
@@ -229,8 +342,6 @@ const addView = (browserWindow, workspace) => {
   views[workspace.id] = view;
 
   if (workspace.active) {
-    activeId = workspace.id;
-
     browserWindow.setBrowserView(view);
 
     const contentSize = browserWindow.getContentSize();
@@ -251,8 +362,10 @@ const addView = (browserWindow, workspace) => {
     });
   }
 
-  view.webContents.loadURL((rememberLastPageVisited && workspace.lastUrl)
-  || workspace.homeUrl || appJson.url);
+  const initialUrl = (rememberLastPageVisited && workspace.lastUrl)
+  || workspace.homeUrl || appJson.url;
+  adjustUserAgentByUrl(initialUrl);
+  view.webContents.loadURL(initialUrl);
 };
 
 const getView = (id) => views[id];
@@ -262,9 +375,6 @@ const setActiveView = (browserWindow, id) => {
   const currentView = browserWindow.getBrowserView();
   currentView.webContents.stopFindInPage('clearSelection');
   browserWindow.send('close-find-in-page');
-
-  const oldActiveId = activeId;
-  activeId = id;
 
   if (views[id] == null) {
     addView(browserWindow, getWorkspace(id));
@@ -298,15 +408,6 @@ const setActiveView = (browserWindow, id) => {
 
     sendToAllWindows('update-is-loading', view.webContents.isLoading());
     sendToAllWindows('update-did-fail-load', Boolean(didFailLoad[id]));
-  }
-
-  // hibernate old view
-  if (oldActiveId !== activeId) {
-    const oldWorkspace = getWorkspace(oldActiveId);
-    if (oldWorkspace.hibernateWhenUnused && views[oldWorkspace.id] != null) {
-      views[oldWorkspace.id].destroy();
-      views[oldWorkspace.id] = null;
-    }
   }
 };
 
@@ -348,11 +449,19 @@ const setViewsNotificationsPref = (_shouldPauseNotifications) => {
   });
 };
 
+const hibernateView = (id) => {
+  if (views[id] != null) {
+    views[id].destroy();
+    views[id] = null;
+  }
+};
+
 module.exports = {
   addView,
   getView,
-  setActiveView,
+  hibernateView,
   removeView,
+  setActiveView,
   setViewsAudioPref,
   setViewsNotificationsPref,
 };

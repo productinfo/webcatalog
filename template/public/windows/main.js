@@ -10,6 +10,7 @@ const path = require('path');
 
 const { REACT_PATH } = require('../constants/paths');
 const { getPreference } = require('../libs/preferences');
+const appJson = require('../app.json');
 
 let win;
 let mb = {};
@@ -33,6 +34,7 @@ const createAsync = () => {
       index: REACT_PATH,
       icon: path.resolve(__dirname, '..', 'menubar-icon.png'),
       preloadWindow: true,
+      tooltip: appJson.name,
       browserWindow: {
         x: menubarWindowState.x,
         y: menubarWindowState.y,
@@ -44,26 +46,6 @@ const createAsync = () => {
         },
       },
     });
-
-    const contextMenu = Menu.buildFromTemplate([
-      { role: 'about' },
-      {
-        label: 'Check for Updates...',
-        click: () => ipcMain.emit('check-for-updates'),
-      },
-      { type: 'separator' },
-      {
-        label: 'Preferences...',
-        click: () => ipcMain.emit('request-show-preferences-window'),
-      },
-      { type: 'separator' },
-      {
-        label: 'Quit',
-        click: () => {
-          mb.app.quit();
-        },
-      },
-    ]);
 
     return new Promise((resolve, reject) => {
       try {
@@ -80,6 +62,37 @@ const createAsync = () => {
 
         mb.on('ready', () => {
           mb.tray.on('right-click', () => {
+            const contextMenu = Menu.buildFromTemplate([
+              {
+                label: `Open ${appJson.name}`,
+                click: () => mb.showWindow(),
+              },
+              {
+                type: 'separator',
+              },
+              {
+                label: `About ${appJson.name}`,
+                click: () => ipcMain.emit('request-show-about-window'),
+              },
+              { type: 'separator' },
+              {
+                label: 'Check for Updates...',
+                click: () => ipcMain.emit('request-check-for-updates'),
+              },
+              { type: 'separator' },
+              {
+                label: 'Preferences...',
+                click: () => ipcMain.emit('request-show-preferences-window'),
+              },
+              { type: 'separator' },
+              {
+                label: 'Quit',
+                click: () => {
+                  mb.app.quit();
+                },
+              },
+            ]);
+
             mb.tray.popUpContextMenu(contextMenu);
           });
 

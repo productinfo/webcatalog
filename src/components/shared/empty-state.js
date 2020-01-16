@@ -10,8 +10,6 @@ const styles = {
     display: 'flex',
     flex: 1,
     flexDirection: 'column',
-    height: '100%',
-    justifyContent: 'center',
     width: '100%',
   },
   title: {
@@ -45,12 +43,14 @@ const EmptyState = (props) => {
           {title}
         </Typography>
       )}
-      <Typography
-        variant="subtitle1"
-        align="center"
-      >
-        {children}
-      </Typography>
+      {typeof children === 'string' ? (
+        <Typography
+          variant="subtitle1"
+          align="center"
+        >
+          {children}
+        </Typography>
+      ) : children}
     </div>
   );
 };

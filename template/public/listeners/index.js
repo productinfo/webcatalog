@@ -33,10 +33,12 @@ const {
 const {
   clearBrowsingData,
   createWorkspaceView,
+  hibernateWorkspaceView,
   loadURL,
   removeWorkspaceView,
   setActiveWorkspaceView,
   setWorkspaceView,
+  wakeUpWorkspaceView,
 } = require('../libs/workspaces-views');
 
 const {
@@ -48,7 +50,9 @@ const createMenu = require('../libs/create-menu');
 const sendToAllWindows = require('../libs/send-to-all-windows');
 const { checkForUpdates } = require('../libs/updater');
 
+const aboutWindow = require('../windows/about');
 const codeInjectionWindow = require('../windows/code-injection');
+const customUserAgentWindow = require('../windows/custom-user-agent');
 const displayMediaWindow = require('../windows/display-media');
 const editWorkspaceWindow = require('../windows/edit-workspace');
 const mainWindow = require('../windows/main');
@@ -129,6 +133,9 @@ const loadListeners = () => {
     codeInjectionWindow.show(type);
   });
 
+  ipcMain.on('request-show-custom-user-agent-window', () => {
+    customUserAgentWindow.show();
+  });
 
   ipcMain.on('request-reset-preferences', () => {
     dialog.showMessageBox(preferencesWindow.get(), {
@@ -142,6 +149,10 @@ const loadListeners = () => {
         ipcMain.emit('request-show-require-restart-dialog');
       }
     }).catch(console.log); // eslint-disable-line
+  });
+
+  ipcMain.on('request-show-about-window', () => {
+    aboutWindow.show();
   });
 
   ipcMain.on('request-show-preferences-window', () => {
@@ -231,7 +242,9 @@ const loadListeners = () => {
   ipcMain.on('request-realign-active-workspace', () => {
     global.attachToMenubar = getPreference('attachToMenubar');
     global.showSidebar = getPreference('sidebar');
-    global.showNavigationBar = getPreference('navigationBar');
+    global.showNavigationBar = (process.platform === 'linux'
+      && global.attachToMenubar
+      && !global.showSidebar) || getPreference('navigationBar');
 
     const activeWorkspace = getActiveWorkspace();
     setActiveWorkspaceView(activeWorkspace.id);
@@ -255,6 +268,13 @@ const loadListeners = () => {
     loadURL(url, activeWorkspace.id);
   });
 
+  ipcMain.on('request-wake-up-workspace', (e, id) => {
+    wakeUpWorkspaceView(id);
+  });
+
+  ipcMain.on('request-hibernate-workspace', (e, id) => {
+    hibernateWorkspaceView(id);
+  });
 
   ipcMain.on('request-remove-workspace', (e, id) => {
     removeWorkspaceView(id);
@@ -337,7 +357,7 @@ const loadListeners = () => {
     }
   });
 
-  ipcMain.on('check-for-updates', () => {
+  ipcMain.on('request-check-for-updates', () => {
     checkForUpdates();
   });
 
@@ -372,6 +392,10 @@ const loadListeners = () => {
   ipcMain.on('request-show-display-media-window', (e) => {
     const viewId = BrowserView.fromWebContents(e.sender).id;
     displayMediaWindow.show(viewId);
+  });
+
+  ipcMain.on('request-quit', () => {
+    app.quit();
   });
 };
 

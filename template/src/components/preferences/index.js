@@ -25,14 +25,19 @@ import StatedMenu from '../shared/stated-menu';
 import { updateIsDefaultMailClient, updateIsDefaultWebBrowser } from '../../state/general/actions';
 
 import {
+  requestCheckForUpdates,
   requestClearBrowsingData,
   requestOpenInBrowser,
+  requestQuit,
   requestRealignActiveWorkspace,
   requestResetPreferences,
   requestSetPreference,
   requestSetSystemPreference,
   requestSetThemeSource,
+  requestShowAboutWindow,
   requestShowCodeInjectionWindow,
+  requestShowCustomUserAgentWindow,
+  requestShowNotificationsWindow,
   requestShowRequireRestartDialog,
 } from '../../senders';
 
@@ -55,6 +60,11 @@ const styles = (theme) => ({
     marginBottom: theme.spacing.unit,
     display: 'flex',
     justifyContent: 'space-between',
+  },
+  secondaryEllipsis: {
+    textOverflow: 'ellipsis',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
   },
 });
 
@@ -135,8 +145,10 @@ const Preferences = ({
   autoCheckForUpdates,
   classes,
   cssCodeInjection,
+  customUserAgent,
   downloadPath,
   hasMailWorkspace,
+  hibernateUnusedWorkspacesAtLaunch,
   isDefaultMailClient,
   isDefaultWebBrowser,
   jsCodeInjection,
@@ -202,7 +214,11 @@ const Preferences = ({
           <ListItemSecondaryAction>
             <Switch
               color="primary"
-              checked={navigationBar}
+              // must show sidebar or navigation bar on Linux
+              // if not, as user can't right-click on menu bar icon
+              // they can't access preferences or notifications
+              checked={(window.process.platform === 'linux' && attachToMenubar && !sidebar) || navigationBar}
+              disabled={(window.process.platform === 'linux' && attachToMenubar && !sidebar)}
               onChange={(e) => {
                 requestSetPreference('navigationBar', e.target.checked);
                 requestRealignActiveWorkspace();
@@ -214,7 +230,8 @@ const Preferences = ({
         <ListItem>
           <ListItemText
             primary={window.process.platform === 'win32'
-              ? 'Attach to taskbar' : 'Attach to menubar'}
+              ? 'Attach to taskbar' : 'Attach to menu bar'}
+            secondary={window.process.platform !== 'linux' ? 'Tip: Right-click on app icon to access context menu.' : null}
           />
           <ListItemSecondaryAction>
             <Switch
@@ -282,6 +299,11 @@ const Preferences = ({
     </Typography>
     <Paper className={classes.paper}>
       <List dense>
+        <ListItem button onClick={requestShowNotificationsWindow}>
+          <ListItemText primary="Control notifications" />
+          <ChevronRightIcon color="action" />
+        </ListItem>
+        <Divider />
         <ListItem>
           <ListItemText>
             Automatically disable notifications by schedule:
@@ -566,6 +588,31 @@ const Preferences = ({
     </Typography>
     <Paper className={classes.paper}>
       <List dense>
+        <ListItem>
+          <ListItemText
+            primary="Hibernate unused workspaces at app launch"
+            secondary="Hibernate all workspaces at launch, except the last active workspace."
+          />
+          <ListItemSecondaryAction>
+            <Switch
+              color="primary"
+              checked={hibernateUnusedWorkspacesAtLaunch}
+              onChange={(e) => {
+                requestSetPreference('hibernateUnusedWorkspacesAtLaunch', e.target.checked);
+              }}
+            />
+          </ListItemSecondaryAction>
+        </ListItem>
+        <Divider />
+        <ListItem button onClick={requestShowCustomUserAgentWindow}>
+          <ListItemText
+            primary="Custom User Agent"
+            secondary={customUserAgent || 'Not set'}
+            classes={{ secondary: classes.secondaryEllipsis }}
+          />
+          <ChevronRightIcon color="action" />
+        </ListItem>
+        <Divider />
         <ListItem button onClick={() => requestShowCodeInjectionWindow('js')}>
           <ListItemText primary="JS Code Injection" secondary={jsCodeInjection ? 'Set' : 'Not set'} />
           <ChevronRightIcon color="action" />
@@ -589,11 +636,39 @@ const Preferences = ({
         </ListItem>
       </List>
     </Paper>
+
+    <Typography variant="subtitle2" className={classes.sectionTitle}>
+      Miscellaneous
+    </Typography>
+    <Paper className={classes.paper}>
+      <List dense>
+        <ListItem button onClick={requestShowAboutWindow}>
+          <ListItemText primary="About" />
+          <ChevronRightIcon color="action" />
+        </ListItem>
+        <Divider />
+        <ListItem
+          button
+          onClick={requestCheckForUpdates}
+        >
+          <ListItemText
+            primary="Check for Updates"
+          />
+          <ChevronRightIcon color="action" />
+        </ListItem>
+        <Divider />
+        <ListItem button onClick={requestQuit}>
+          <ListItemText primary="Quit" />
+          <ChevronRightIcon color="action" />
+        </ListItem>
+      </List>
+    </Paper>
   </div>
 );
 
 Preferences.defaultProps = {
   cssCodeInjection: null,
+  customUserAgent: null,
   jsCodeInjection: null,
 };
 
@@ -603,8 +678,10 @@ Preferences.propTypes = {
   autoCheckForUpdates: PropTypes.bool.isRequired,
   classes: PropTypes.object.isRequired,
   cssCodeInjection: PropTypes.string,
+  customUserAgent: PropTypes.string,
   downloadPath: PropTypes.string.isRequired,
   hasMailWorkspace: PropTypes.bool.isRequired,
+  hibernateUnusedWorkspacesAtLaunch: PropTypes.bool.isRequired,
   isDefaultMailClient: PropTypes.bool.isRequired,
   isDefaultWebBrowser: PropTypes.bool.isRequired,
   jsCodeInjection: PropTypes.string,
@@ -631,8 +708,10 @@ const mapStateToProps = (state) => ({
   attachToMenubar: state.preferences.attachToMenubar,
   autoCheckForUpdates: state.preferences.autoCheckForUpdates,
   cssCodeInjection: state.preferences.cssCodeInjection,
+  customUserAgent: state.preferences.customUserAgent,
   downloadPath: state.preferences.downloadPath,
   hasMailWorkspace: hasMailWorkspaceFunc(state.workspaces),
+  hibernateUnusedWorkspacesAtLaunch: state.preferences.hibernateUnusedWorkspacesAtLaunch,
   isDefaultMailClient: state.general.isDefaultMailClient,
   isDefaultWebBrowser: state.general.isDefaultWebBrowser,
   jsCodeInjection: state.preferences.jsCodeInjection,

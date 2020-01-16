@@ -8686,10 +8686,10 @@ memory-fs@^0.5.0:
     errno "^0.1.3"
     readable-stream "^2.0.1"
 
-menubar@6.0.8:
-  version "6.0.8"
-  resolved "https://registry.yarnpkg.com/menubar/-/menubar-6.0.8.tgz#deff4b4227c73149f6316c481accb1486e7c9e7f"
-  integrity sha512-S02SLiqec8MAUbV2vsUThh0P9XPKS9mrHVN3c/6T1g+tuHwFX7TRup3xCAjIGCO+Hxs32tWmjqVh4KjBGIXudQ==
+menubar@7.1.0:
+  version "7.1.0"
+  resolved "https://registry.yarnpkg.com/menubar/-/menubar-7.1.0.tgz#c92d75e78fcce6da39fced936ad75c94009699df"
+  integrity sha512-B7ITYPW0oNu5NSjaYTt9ExL6GRMVb9p+ryW+c/4Rg1/EErmDGJhwCZavnV2roGJApNiFahymHsaG9yRq2iMCkw==
   dependencies:
     electron-positioner "^4.1.0"
 
@@ -11234,10 +11234,10 @@ redux-thunk@2.3.0:
   resolved "https://registry.yarnpkg.com/redux-thunk/-/redux-thunk-2.3.0.tgz#51c2c19a185ed5187aaa9a2d08b666d0d6467622"
   integrity sha512-km6dclyFnmcvxhAcrQV2AkZmPQjzPDjgVlQtR0EQjxZPyJ0BnMf3in1ryuR8A2qU0HldVRfxYXbFSKlI3N7Slw==
 
-redux@4.0.4:
-  version "4.0.4"
-  resolved "https://registry.yarnpkg.com/redux/-/redux-4.0.4.tgz#4ee1aeb164b63d6a1bcc57ae4aa0b6e6fa7a3796"
-  integrity sha512-vKv4WdiJxOWKxK0yRoaK3Y4pxxB0ilzVx6dszU2W8wLxlb2yikRph4iV/ymtdJ6ZxpBLFbyrxklnT5yBbQSl3Q==
+redux@4.0.5:
+  version "4.0.5"
+  resolved "https://registry.yarnpkg.com/redux/-/redux-4.0.5.tgz#4db5de5816e17891de8a80c424232d06f051d93f"
+  integrity sha512-VSz1uMAH24DM6MF72vcojpYPtrTUu3ByVWfPL1nPfVRb5mZVTve5GnNCUV53QM/BZ66xfWrm0CTWoM+Xlz8V1w==
   dependencies:
     loose-envify "^1.4.0"
     symbol-observable "^1.2.0"

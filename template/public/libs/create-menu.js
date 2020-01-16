@@ -8,6 +8,8 @@ const {
 const appJson = require('../app.json');
 
 const aboutWindow = require('../windows/about');
+const codeInjectionWindow = require('../windows/code-injection');
+const customUserAgentWindow = require('../windows/custom-user-agent');
 const displayMediaWindow = require('../windows/display-media');
 const editWorkspaceWindow = require('../windows/edit-workspace');
 const mainWindow = require('../windows/main');
@@ -97,6 +99,27 @@ function createMenu() {
     {
       label: 'View',
       submenu: [
+        {
+          label: 'Show Sidebar',
+          type: 'checkbox',
+          checked: global.showSidebar,
+          accelerator: 'CmdOrCtrl+Alt+S',
+          click: () => {
+            ipcMain.emit('request-set-preference', null, 'sidebar', !global.showSidebar);
+            ipcMain.emit('request-realign-active-workspace');
+          },
+        },
+        {
+          label: 'Show Navigation Bar',
+          type: 'checkbox',
+          checked: global.showNavigationBar,
+          accelerator: 'CmdOrCtrl+Alt+N',
+          click: () => {
+            ipcMain.emit('request-set-preference', null, 'navigationBar', !global.showNavigationBar);
+            ipcMain.emit('request-realign-active-workspace');
+          },
+        },
+        { type: 'separator' },
         { role: 'togglefullscreen' },
         {
           label: 'Actual Size',
@@ -152,7 +175,7 @@ function createMenu() {
         },
         { type: 'separator' },
         {
-          label: 'Developer Tools',
+          label: 'Toggle Developer Tools',
           submenu: [
             {
               label: 'Main Window',
@@ -171,6 +194,32 @@ function createMenu() {
               label: 'Preferences Window',
               click: () => {
                 const win = preferencesWindow.get();
+                if (win != null) {
+                  if (win.webContents.isDevToolsOpened()) {
+                    win.webContents.closeDevTools();
+                  } else {
+                    win.webContents.openDevTools({ mode: 'detach' });
+                  }
+                }
+              },
+            },
+            {
+              label: 'Code Injection Window',
+              click: () => {
+                const win = codeInjectionWindow.get();
+                if (win != null) {
+                  if (win.webContents.isDevToolsOpened()) {
+                    win.webContents.closeDevTools();
+                  } else {
+                    win.webContents.openDevTools({ mode: 'detach' });
+                  }
+                }
+              },
+            },
+            {
+              label: 'Custom User Agent Window',
+              click: () => {
+                const win = customUserAgentWindow.get();
                 if (win != null) {
                   if (win.webContents.isDevToolsOpened()) {
                     win.webContents.closeDevTools();
@@ -230,49 +279,17 @@ function createMenu() {
         {
           label: 'Home',
           accelerator: 'Shift+CmdOrCtrl+H',
-          click: () => {
-            const win = mainWindow.get();
-
-            if (win != null) {
-              const activeWorkspace = getActiveWorkspace();
-              const contents = win.getBrowserView().webContents;
-              contents.loadURL(activeWorkspace.homeUrl || appJson.url);
-              win.send('update-can-go-back', contents.canGoBack());
-              win.send('update-can-go-forward', contents.canGoForward());
-            }
-          },
+          click: () => ipcMain.emit('request-go-home'),
         },
         {
           label: 'Back',
           accelerator: 'CmdOrCtrl+[',
-          click: () => {
-            const win = mainWindow.get();
-
-            if (win != null) {
-              const contents = win.getBrowserView().webContents;
-              if (contents.canGoBack()) {
-                contents.goBack();
-                win.send('update-can-go-back', contents.canGoBack());
-                win.send('update-can-go-forward', contents.canGoForward());
-              }
-            }
-          },
+          click: () => ipcMain.emit('request-go-back'),
         },
         {
           label: 'Forward',
           accelerator: 'CmdOrCtrl+]',
-          click: () => {
-            const win = mainWindow.get();
-
-            if (win != null) {
-              const contents = win.getBrowserView().webContents;
-              if (contents.canGoForward()) {
-                contents.goForward();
-                win.send('update-can-go-back', contents.canGoBack());
-                win.send('update-can-go-forward', contents.canGoForward());
-              }
-            }
-          },
+          click: () => ipcMain.emit('request-go-forward'),
         },
         { type: 'separator' },
         {
@@ -288,6 +305,10 @@ function createMenu() {
           },
         },
       ],
+    },
+    {
+      label: 'Workspaces',
+      submenu: [],
     },
     {
       role: 'window',
@@ -332,13 +353,14 @@ function createMenu() {
         { type: 'separator' },
         {
           label: 'Preferences...',
-          accelerator: 'Cmd+,',
+          accelerator: 'CmdOrCtrl+,',
           click: () => preferencesWindow.show(),
         },
         { type: 'separator' },
         {
           label: 'Notifications...',
           click: () => notificationsWindow.show(),
+          accelerator: 'CmdOrCtrl+Shift+N',
         },
         { type: 'separator' },
         {
@@ -371,13 +393,14 @@ function createMenu() {
         { type: 'separator' },
         {
           label: 'Preferences...',
-          accelerator: 'Ctrl+,',
+          accelerator: 'CmdOrCtrl+,',
           click: () => preferencesWindow.show(),
         },
         { type: 'separator' },
         {
           label: 'Notifications...',
           click: () => notificationsWindow.show(),
+          accelerator: 'CmdOrCtrl+Shift+N',
         },
         { type: 'separator' },
         {
@@ -405,7 +428,7 @@ function createMenu() {
         accelerator: i < 9 ? `CmdOrCtrl+${i + 1}` : null,
       });
 
-      template[2].submenu[7].submenu.push({
+      template[2].submenu[template[2].submenu.length - 1].submenu.push({
         label: workspace.name || `Workspace ${i + 1}`,
         click: () => {
           const v = getView(workspace.id);

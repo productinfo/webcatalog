@@ -2,10 +2,9 @@ const {
   app,
   Menu,
   shell,
+  ipcMain,
 } = require('electron');
-const { autoUpdater } = require('electron-updater');
 
-const mainWindow = require('../windows/main');
 const sendToAllWindows = require('./send-to-all-windows');
 
 const { getPreference } = require('./preferences');
@@ -33,12 +32,11 @@ const createMenu = () => {
     {
       label: 'View',
       submenu: [
+        { role: 'togglefullscreen' },
+        { type: 'separator' },
         {
-          label: 'Developer Tools',
           role: 'toggledevtools',
         },
-        { type: 'separator' },
-        { role: 'togglefullscreen' },
       ],
     },
     {
@@ -52,7 +50,7 @@ const createMenu = () => {
       role: 'help',
       submenu: [
         {
-          label: 'Webcatalog Support',
+          label: 'WebCatalog Support',
           click: () => shell.openExternal('https://getwebcatalog.com/support'),
         },
         {
@@ -77,26 +75,20 @@ const createMenu = () => {
 
   const updaterMenuItem = {
     label: 'Check for Updates...',
-    click: () => {
-      global.updateSilent = false;
-      autoUpdater.checkForUpdates();
-    },
+    click: () => ipcMain.emit('request-check-for-updates'),
     visible: updaterEnabled,
   };
-  if (global.updateDownloaded) {
+  if (global.updaterObj && global.updaterObj.status === 'update-downloaded') {
     updaterMenuItem.label = 'Restart to Apply Updates...';
-    updaterMenuItem.click = () => {
-      setImmediate(() => {
-        app.removeAllListeners('window-all-closed');
-        if (mainWindow.get() != null) {
-          mainWindow.get().close();
-        }
-        autoUpdater.quitAndInstall(false);
-      });
-    };
-  } else if (global.updaterProgressObj) {
-    const { transferred, total, bytesPerSecond } = global.updaterProgressObj;
+  } else if (global.updaterObj && global.updaterObj.status === 'update-available') {
+    updaterMenuItem.label = 'Downloading Updates...';
+    updaterMenuItem.enabled = false;
+  } else if (global.updaterObj && global.updaterObj.status === 'download-progress') {
+    const { transferred, total, bytesPerSecond } = global.updaterObj.info;
     updaterMenuItem.label = `Downloading Updates (${formatBytes(transferred)}/${formatBytes(total)} at ${formatBytes(bytesPerSecond)}/s)...`;
+    updaterMenuItem.enabled = false;
+  } else if (global.updaterObj && global.updaterObj.status === 'checking-for-update') {
+    updaterMenuItem.label = 'Checking for Updates...';
     updaterMenuItem.enabled = false;
   }
 
@@ -122,7 +114,7 @@ const createMenu = () => {
         { type: 'separator' },
         {
           label: 'Preferences...',
-          accelerator: 'Cmd+,',
+          accelerator: 'CmdOrCtrl+,',
           click: () => sendToAllWindows('go-to-preferences'),
         },
         { type: 'separator' },
@@ -167,7 +159,7 @@ const createMenu = () => {
         { type: 'separator' },
         {
           label: 'Preferences...',
-          accelerator: 'Ctrl+,',
+          accelerator: 'CmdOrCtrl+,',
           click: () => sendToAllWindows('go-to-preferences'),
         },
         { type: 'separator' },
