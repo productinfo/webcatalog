@@ -49,6 +49,7 @@ const {
 const createMenu = require('../libs/create-menu');
 const sendToAllWindows = require('../libs/send-to-all-windows');
 const { checkForUpdates } = require('../libs/updater');
+const getWebsiteIconUrlAsync = require('../libs/get-website-icon-url-async');
 
 const aboutWindow = require('../windows/about');
 const codeInjectionWindow = require('../windows/code-injection');
@@ -277,8 +278,17 @@ const loadListeners = () => {
   });
 
   ipcMain.on('request-remove-workspace', (e, id) => {
-    removeWorkspaceView(id);
-    createMenu();
+    dialog.showMessageBox(preferencesWindow.get() || mainWindow.get(), {
+      type: 'question',
+      buttons: ['Remove Workspace', 'Cancel'],
+      message: 'Are you sure? All browsing data of this workspace will be wiped. This action cannot be undone.',
+      cancelId: 1,
+    }, (response) => {
+      if (response === 0) {
+        removeWorkspaceView(id);
+        createMenu();
+      }
+    });
   });
 
   ipcMain.on('request-set-workspace', (e, id, opts) => {
@@ -396,6 +406,19 @@ const loadListeners = () => {
 
   ipcMain.on('request-quit', () => {
     app.quit();
+  });
+
+  // to be replaced with invoke (electron 7+)
+  // https://electronjs.org/docs/api/ipc-renderer#ipcrendererinvokechannel-args
+  ipcMain.on('request-get-website-icon-url', (e, id, url) => {
+    getWebsiteIconUrlAsync(url)
+      .then((iconUrl) => {
+        sendToAllWindows(id, iconUrl);
+      })
+      .catch((err) => {
+        console.log(err); // eslint-disable-line no-console
+        sendToAllWindows(id, null);
+      });
   });
 };
 

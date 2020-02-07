@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
 
 import Button from '@material-ui/core/Button';
 import TextField from '@material-ui/core/TextField';
@@ -9,12 +10,20 @@ import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
 import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
 import Switch from '@material-ui/core/Switch';
+import Typography from '@material-ui/core/Typography';
+import FormGroup from '@material-ui/core/FormGroup';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import Checkbox from '@material-ui/core/Checkbox';
 
 import connectComponent from '../../helpers/connect-component';
 import getAvatarText from '../../helpers/get-avatar-text';
 import getMailtoUrl from '../../helpers/get-mailto-url';
 
-import { updateForm, save } from '../../state/edit-workspace/actions';
+import {
+  getIconFromInternet,
+  updateForm,
+  save,
+} from '../../state/edit-workspace/actions';
 
 const { remote } = window.require('electron');
 
@@ -45,19 +54,25 @@ const styles = (theme) => ({
     display: 'flex',
   },
   avatarLeft: {
-    padding: theme.spacing.unit,
+    paddingTop: theme.spacing.unit,
+    paddingBottom: theme.spacing.unit,
+    paddingLeft: 0,
+    paddingRight: theme.spacing.unit,
   },
   avatarRight: {
     flex: 1,
-    padding: theme.spacing.unit,
+    paddingTop: theme.spacing.unit,
+    paddingBottom: theme.spacing.unit,
+    paddingLeft: theme.spacing.unit,
+    paddingRight: 0,
   },
   avatar: {
     fontFamily: theme.typography.fontFamily,
     height: 64,
     width: 64,
-    background: theme.palette.type === 'dark' ? theme.palette.common.white : theme.palette.common.black,
+    background: theme.palette.common.white,
     borderRadius: 4,
-    color: theme.palette.getContrastText(theme.palette.type === 'dark' ? theme.palette.common.white : theme.palette.common.black),
+    color: theme.palette.getContrastText(theme.palette.common.white),
     fontSize: '32px',
     lineHeight: '64px',
     textAlign: 'center',
@@ -65,6 +80,15 @@ const styles = (theme) => ({
     textTransform: 'uppercase',
     userSelect: 'none',
     boxShadow: theme.shadows[1],
+  },
+  textAvatar: {
+    background: theme.palette.type === 'dark' ? theme.palette.common.white : theme.palette.common.black,
+    color: theme.palette.getContrastText(theme.palette.type === 'dark' ? theme.palette.common.white : theme.palette.common.black),
+  },
+  transparentAvatar: {
+    background: 'transparent',
+    boxShadow: 'none',
+    color: theme.palette.text.primary,
   },
   avatarPicture: {
     height: 64,
@@ -80,16 +104,20 @@ const EditWorkspace = ({
   classes,
   disableAudio,
   disableNotifications,
+  downloadingIcon,
   hibernateWhenUnused,
   homeUrl,
   homeUrlError,
   id,
+  internetIcon,
   isMailApp,
   name,
+  onGetIconFromInternet,
   onSave,
   onUpdateForm,
   order,
   picturePath,
+  transparentBackground,
 }) => (
   <div className={classes.root}>
     <div className={classes.flexGrow}>
@@ -133,20 +161,27 @@ const EditWorkspace = ({
       />
       <div className={classes.avatarFlex}>
         <div className={classes.avatarLeft}>
-          <div className={classes.avatar}>
-            {picturePath ? (
-              <img alt="Icon" className={classes.avatarPicture} src={`file://${picturePath}`} />
+          <div
+            className={classNames(
+              classes.avatar,
+              !picturePath && !internetIcon && classes.textAvatar,
+              transparentBackground && classes.transparentAvatar,
+            )}
+          >
+            {picturePath || internetIcon ? (
+              <img alt="Icon" className={classes.avatarPicture} src={picturePath ? `file://${picturePath}` : internetIcon} />
             ) : getAvatarText(id, name, order)}
           </div>
         </div>
         <div className={classes.avatarRight}>
           <Button
-            variant="contained"
+            variant="outlined"
+            size="small"
             onClick={() => {
               const opts = {
                 properties: ['openFile'],
                 filters: [
-                  { name: 'Images', extensions: ['jpg', 'jpeg', 'png'] },
+                  { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif', 'tiff', 'tif', 'bmp', 'dib'] },
                 ],
               };
               remote.dialog.showOpenDialog(remote.getCurrentWindow(), opts)
@@ -158,16 +193,40 @@ const EditWorkspace = ({
                 .catch(console.log); // eslint-disable-line
             }}
           >
-            Change Icon
+            Select Local Image...
           </Button>
-          <br />
+          <Typography variant="caption">
+            PNG, JPEG, GIF, TIFF or BMP.
+          </Typography>
           <Button
-            variant="contained"
+            variant="outlined"
+            size="small"
             className={classes.buttonBot}
-            onClick={() => onUpdateForm({ picturePath: null })}
+            disabled={homeUrlError || downloadingIcon}
+            onClick={() => onGetIconFromInternet(true)}
           >
-            Remove Icon
+            {downloadingIcon ? 'Downloading Icon from the Internet...' : 'Download Icon from the Internet'}
           </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            className={classes.buttonBot}
+            onClick={() => onUpdateForm({ picturePath: null, internetIcon: null })}
+            disabled={!(picturePath || internetIcon)}
+          >
+            Reset to Default
+          </Button>
+          <FormGroup>
+            <FormControlLabel
+              control={(
+                <Checkbox
+                  checked={transparentBackground}
+                  onChange={(e) => onUpdateForm({ transparentBackground: e.target.checked })}
+                />
+              )}
+              label="Use transparent background"
+            />
+          </FormGroup>
         </div>
       </div>
       <List>
@@ -213,40 +272,49 @@ const EditWorkspace = ({
 );
 
 EditWorkspace.defaultProps = {
-  picturePath: null,
   homeUrlError: null,
+  internetIcon: null,
+  picturePath: null,
 };
 
 EditWorkspace.propTypes = {
   classes: PropTypes.object.isRequired,
   disableAudio: PropTypes.bool.isRequired,
   disableNotifications: PropTypes.bool.isRequired,
+  downloadingIcon: PropTypes.bool.isRequired,
   hibernateWhenUnused: PropTypes.bool.isRequired,
   homeUrl: PropTypes.string.isRequired,
   homeUrlError: PropTypes.string,
   id: PropTypes.string.isRequired,
+  internetIcon: PropTypes.string,
   isMailApp: PropTypes.bool.isRequired,
   name: PropTypes.string.isRequired,
+  onGetIconFromInternet: PropTypes.func.isRequired,
   onSave: PropTypes.func.isRequired,
   onUpdateForm: PropTypes.func.isRequired,
   order: PropTypes.number.isRequired,
   picturePath: PropTypes.string,
+  transparentBackground: PropTypes.bool.isRequired,
 };
 
 const mapStateToProps = (state) => ({
   disableAudio: Boolean(state.editWorkspace.form.disableAudio),
   disableNotifications: Boolean(state.editWorkspace.form.disableNotifications),
+  downloadingIcon: state.editWorkspace.downloadingIcon,
   hibernateWhenUnused: Boolean(state.editWorkspace.form.hibernateWhenUnused),
   homeUrl: state.editWorkspace.form.homeUrl,
   homeUrlError: state.editWorkspace.form.homeUrlError,
   id: state.editWorkspace.form.id,
+  internetIcon: state.editWorkspace.form.internetIcon,
   isMailApp: Boolean(getMailtoUrl(state.editWorkspace.form.homeUrl)),
   name: state.editWorkspace.form.name,
   order: state.editWorkspace.form.order,
   picturePath: state.editWorkspace.form.picturePath,
+  transparentBackground: Boolean(state.editWorkspace.form.transparentBackground),
 });
 
 const actionCreators = {
+  getIconFromInternet,
   updateForm,
   save,
 };

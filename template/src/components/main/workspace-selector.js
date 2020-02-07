@@ -33,14 +33,23 @@ const styles = (theme) => ({
   avatar: {
     height: 32,
     width: 32,
-    background: theme.palette.type === 'dark' ? theme.palette.common.white : theme.palette.common.black,
+    background: theme.palette.common.white,
     borderRadius: 4,
-    color: theme.palette.getContrastText(theme.palette.type === 'dark' ? theme.palette.common.white : theme.palette.common.black),
+    color: theme.palette.getContrastText(theme.palette.common.white),
     lineHeight: '32px',
     textAlign: 'center',
     fontWeight: 500,
     textTransform: 'uppercase',
     boxShadow: theme.shadows[1],
+  },
+  textAvatar: {
+    background: theme.palette.type === 'dark' ? theme.palette.common.white : theme.palette.common.black,
+    color: theme.palette.getContrastText(theme.palette.type === 'dark' ? theme.palette.common.white : theme.palette.common.black),
+  },
+  transparentAvatar: {
+    background: 'transparent',
+    boxShadow: 'none',
+    color: theme.palette.text.primary,
   },
   avatarPicture: {
     height: 32,
@@ -82,6 +91,7 @@ const WorkspaceSelector = ({
   onContextMenu,
   order,
   picturePath,
+  transparentBackground,
 }) => (
   <div
     role="button"
@@ -91,7 +101,13 @@ const WorkspaceSelector = ({
     onContextMenu={onContextMenu}
     tabIndex="0"
   >
-    <div className={classes.avatar}>
+    <div
+      className={classNames(
+        classes.avatar,
+        (id === 'add' || !picturePath) && classes.textAvatar,
+        transparentBackground && classes.transparentAvatar,
+      )}
+    >
       {picturePath ? (
         <img alt="Icon" className={classes.avatarPicture} src={`file://${picturePath}`} draggable={false} />
       ) : getAvatarText(id, name, order)}
@@ -114,6 +130,7 @@ WorkspaceSelector.defaultProps = {
   onContextMenu: null,
   order: 0,
   picturePath: null,
+  transparentBackground: false,
 };
 
 WorkspaceSelector.propTypes = {
@@ -126,6 +143,7 @@ WorkspaceSelector.propTypes = {
   onContextMenu: PropTypes.func,
   order: PropTypes.number,
   picturePath: PropTypes.string,
+  transparentBackground: PropTypes.bool,
 };
 
 export default connectComponent(
