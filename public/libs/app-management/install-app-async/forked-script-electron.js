@@ -95,6 +95,15 @@ Promise.resolve()
       });
     }
 
+    // try to get fresh icon from catalog if possible
+    if (!id.startsWith('custom-')) {
+      const catalogIconUrl = `https://s3.getwebcatalog.com/apps/${id}/${id}-icon.png`;
+      return download(catalogIconUrl, buildResourcesPath, {
+        filename: 'e.png',
+      })
+        .catch(() => fsExtra.copy(icon, iconPngPath)); // fallback if fails
+    }
+
     return fsExtra.copy(icon, iconPngPath);
   })
   .then(() => Jimp.read(iconPngPath))
@@ -190,7 +199,7 @@ Promise.resolve()
       darwinDarkModeSupport: true,
       tmpdir: false,
       asar: {
-        unpack: '{app.json,icon.png,package.json,manifest.json}',
+        unpack: '{app.json,icon.png,icon.ico,package.json,manifest.json}',
       },
     };
 
@@ -246,7 +255,7 @@ Terminal=false;
       const opts = {
         target: exePath,
         args: '',
-        icon: publicIconIcoPath,
+        icon: path.join(finalPath, 'resources', 'app.asar.unpacked', 'build', 'icon.ico'),
       };
       const startMenuPath = path.join(homePath, 'AppData', 'Roaming', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'WebCatalog Apps');
       const startMenuShortcutPath = path.join(startMenuPath, `${name}.lnk`);
@@ -254,11 +263,11 @@ Terminal=false;
 
       const p = [];
 
-      if (createDesktopShortcut) {
+      if (createDesktopShortcut === 'true') {
         p.push(createShortcutAsync(desktopShortcutPath, opts));
       }
 
-      if (createStartMenuShortcut) {
+      if (createStartMenuShortcut === 'true') {
         p.push(fsExtra.ensureDir(startMenuPath)
           .then(() => createShortcutAsync(startMenuShortcutPath, opts)));
       }

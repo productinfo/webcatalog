@@ -137,7 +137,7 @@ const EditWorkspace = ({
       />
       <TextField
         id="outlined-full-width"
-        label={homeUrlError || 'Home URL'}
+        label="Home URL"
         error={Boolean(homeUrlError)}
         placeholder="Optional"
         fullWidth
@@ -156,7 +156,7 @@ const EditWorkspace = ({
           if (!homeUrl) {
             return `Defaults to ${appJson.url}.`;
           }
-          return null;
+          return homeUrlError;
         })()}
       />
       <div className={classes.avatarFlex}>
@@ -202,7 +202,7 @@ const EditWorkspace = ({
             variant="outlined"
             size="small"
             className={classes.buttonBot}
-            disabled={homeUrlError || downloadingIcon}
+            disabled={Boolean(homeUrlError || downloadingIcon)}
             onClick={() => onGetIconFromInternet(true)}
           >
             {downloadingIcon ? 'Downloading Icon from the Internet...' : 'Download Icon from the Internet'}

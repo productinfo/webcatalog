@@ -95,6 +95,7 @@ const defaultPreferences = {
   cssCodeInjection: null,
   customUserAgent: null,
   downloadPath: getDefaultDownloadsPath(),
+  hideMenuBar: false,
   jsCodeInjection: null,
   lastCheckForUpdates: 0,
   navigationBar: false,
@@ -110,6 +111,7 @@ const defaultPreferences = {
   spellCheckerLanguages: null,
   swipeToNavigate: true,
   themeSource: process.platform === 'darwin' ? 'system' : 'light',
+  titleBar: false,
   unreadCountBadge: true,
 };
 

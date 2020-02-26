@@ -2,12 +2,14 @@ import { setPreference } from '../state/preferences/actions';
 import { setSystemPreference } from '../state/system-preferences/actions';
 import { setWorkspace } from '../state/workspaces/actions';
 import {
+  updateAddressBarInfo,
   updateCanGoBack,
   updateCanGoForward,
   updateDidFailLoad,
   updateIsLoading,
   updateShouldUseDarkColors,
   updateThemeSource,
+  updateTitle,
 } from '../state/general/actions';
 import {
   closeFindInPage,
@@ -52,6 +54,13 @@ const loadListeners = (store) => {
     store.dispatch(updateCanGoForward(value));
   });
 
+  ipcRenderer.on('update-address', (e, address, edited) => {
+    store.dispatch(updateAddressBarInfo(address, edited));
+  });
+
+  ipcRenderer.on('update-title', (e, title) => {
+    store.dispatch(updateTitle(title));
+  });
 
   ipcRenderer.on('update-is-loading', (e, value) => {
     store.dispatch(updateIsLoading(value));

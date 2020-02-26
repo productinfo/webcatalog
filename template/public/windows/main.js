@@ -40,6 +40,8 @@ const createAsync = () => {
         y: menubarWindowState.y,
         width: menubarWindowState.width,
         height: menubarWindowState.height,
+        minHeight: 100,
+        minWidth: 250,
         webPreferences: {
           nodeIntegration: true,
           preload: path.join(__dirname, '..', 'preload', 'menubar.js'),
@@ -118,13 +120,16 @@ const createAsync = () => {
     width: mainWindowState.width,
     height: mainWindowState.height,
     minHeight: 100,
+    minWidth: 350,
     title: global.appJson.name,
     titleBarStyle: 'hidden',
     show: !wasOpenedAsHidden,
     icon: process.platform === 'linux' ? path.resolve(__dirname, '..', 'icon.png') : null,
+    autoHideMenuBar: getPreference('hideMenuBar'),
     webPreferences: {
       nodeIntegration: true,
       webSecurity: false,
+      preload: path.join(__dirname, '..', 'preload', 'main.js'),
     },
   });
 
@@ -165,6 +170,24 @@ const createAsync = () => {
       view.webContents.focus();
     }
   });
+
+  // Fix webview is not resized automatically
+  // when window is maximized on Linux
+  // https://github.com/quanglam2807/webcatalog/issues/561
+  if (process.platform === 'linux') {
+    const handleMaximize = () => {
+      // getContentSize is not updated immediately
+      // try once after 0.2s (for fast computer), another one after 1s (to be sure)
+      setTimeout(() => {
+        ipcMain.emit('request-realign-active-workspace');
+      }, 200);
+      setTimeout(() => {
+        ipcMain.emit('request-realign-active-workspace');
+      }, 1000);
+    };
+    win.on('maximize', handleMaximize);
+    win.on('unmaximize', handleMaximize);
+  }
 
 
   return Promise.resolve();

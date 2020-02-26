@@ -12,9 +12,12 @@ const codeInjectionWindow = require('../windows/code-injection');
 const customUserAgentWindow = require('../windows/custom-user-agent');
 const displayMediaWindow = require('../windows/display-media');
 const editWorkspaceWindow = require('../windows/edit-workspace');
+const goToUrlWindow = require('../windows/go-to-url');
 const mainWindow = require('../windows/main');
 const notificationsWindow = require('../windows/notifications');
 const preferencesWindow = require('../windows/preferences');
+
+const getViewBounds = require('../libs/get-view-bounds');
 
 const {
   getWorkspaces,
@@ -35,8 +38,6 @@ const {
 const {
   checkForUpdates,
 } = require('./updater');
-
-const FIND_IN_PAGE_HEIGHT = 42;
 
 function createMenu() {
   const template = [
@@ -64,16 +65,7 @@ function createMenu() {
               const contentSize = win.getContentSize();
               const view = win.getBrowserView();
 
-              const offsetTitlebar = process.platform !== 'darwin' || global.showSidebar || global.attachToMenubar ? 0 : 22;
-              const x = global.showSidebar ? 68 : 0;
-              const y = global.showNavigationBar ? 36 + offsetTitlebar : 0 + offsetTitlebar;
-
-              view.setBounds({
-                x,
-                y: y + FIND_IN_PAGE_HEIGHT,
-                height: contentSize[1] - y - FIND_IN_PAGE_HEIGHT,
-                width: contentSize[0] - x,
-              });
+              view.setBounds(getViewBounds(contentSize, true));
             }
           },
         },
@@ -99,22 +91,29 @@ function createMenu() {
       label: 'View',
       submenu: [
         {
-          label: 'Show Sidebar',
-          type: 'checkbox',
-          checked: global.showSidebar,
+          label: global.sidebar ? 'Hide Sidebar' : 'Show Sidebar',
           accelerator: 'CmdOrCtrl+Alt+S',
           click: () => {
-            ipcMain.emit('request-set-preference', null, 'sidebar', !global.showSidebar);
+            ipcMain.emit('request-set-preference', null, 'sidebar', !global.sidebar);
             ipcMain.emit('request-realign-active-workspace');
           },
         },
         {
-          label: 'Show Navigation Bar',
-          type: 'checkbox',
-          checked: global.showNavigationBar,
+          label: global.navigationBar ? 'Hide Navigation Bar' : 'Show Navigation Bar',
           accelerator: 'CmdOrCtrl+Alt+N',
+          enabled: !(process.platform === 'linux' && global.attachToMenubar && !global.sidebar),
           click: () => {
-            ipcMain.emit('request-set-preference', null, 'navigationBar', !global.showNavigationBar);
+            ipcMain.emit('request-set-preference', null, 'navigationBar', !global.navigationBar);
+            ipcMain.emit('request-realign-active-workspace');
+          },
+        },
+        {
+          label: (!global.sidebar && !global.navigationBar) || global.titleBar ? 'Hide Title Bar' : 'Show Title Bar',
+          accelerator: 'CmdOrCtrl+Alt+T',
+          enabled: global.sidebar || global.navigationBar,
+          visible: process.platform === 'darwin',
+          click: () => {
+            ipcMain.emit('request-set-preference', null, 'titleBar', !global.titleBar);
             ipcMain.emit('request-realign-active-workspace');
           },
         },
@@ -267,6 +266,19 @@ function createMenu() {
                 }
               },
             },
+            {
+              label: 'Go To URL Window',
+              click: () => {
+                const win = goToUrlWindow.get();
+                if (win != null) {
+                  if (win.webContents.isDevToolsOpened()) {
+                    win.webContents.closeDevTools();
+                  } else {
+                    win.webContents.openDevTools({ mode: 'detach' });
+                  }
+                }
+              },
+            },
             { type: 'separator' },
           ],
         },
@@ -301,6 +313,14 @@ function createMenu() {
               const url = win.getBrowserView().webContents.getURL();
               clipboard.writeText(url);
             }
+          },
+        },
+        { type: 'separator' },
+        {
+          label: 'Go to URL...',
+          accelerator: 'CmdOrCtrl+Shift+G',
+          click: () => {
+            goToUrlWindow.show();
           },
         },
       ],
