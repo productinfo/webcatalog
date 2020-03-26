@@ -32,8 +32,6 @@ import {
   requestWakeUpWorkspace,
 } from '../../senders';
 
-const { remote } = window.require('electron');
-
 const styles = (theme) => ({
   outerRoot: {
     display: 'flex',
@@ -56,14 +54,14 @@ const styles = (theme) => ({
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    paddingBottom: theme.spacing.unit,
+    paddingBottom: theme.spacing(1),
     boxSizing: 'border-box',
     overflowY: 'auto',
     overflowX: 'hidden',
   },
   sidebarTop: {
     flex: 1,
-    paddingTop: window.process.platform === 'darwin' ? theme.spacing.unit * 3 : 0,
+    paddingTop: window.process.platform === 'darwin' ? theme.spacing(3) : 0,
   },
   sidebarTopFullScreen: {
     paddingTop: 0,
@@ -132,8 +130,8 @@ const SortableItem = sortableElement(({ value }) => {
           });
         }
 
+        const { remote } = window.require('electron');
         const menu = remote.Menu.buildFromTemplate(template);
-
         menu.popup(remote.getCurrentWindow());
       }}
     />
@@ -192,7 +190,7 @@ const Main = ({
                 {shouldPauseNotifications ? <NotificationsPausedIcon /> : <NotificationsIcon />}
               </IconButton>
               {window.mode === 'menubar' && (
-                <IconButton aria-label="Preferences" onClick={requestShowPreferencesWindow} className={classes.iconButton}>
+                <IconButton aria-label="Preferences" onClick={() => requestShowPreferencesWindow()} className={classes.iconButton}>
                   <SettingsIcon />
                 </IconButton>
               )}
@@ -210,14 +208,14 @@ const Main = ({
                   This site can’t be reached.
                 </Typography>
 
-                <Typography align="center" variant="body1">
+                <Typography align="center" variant="body2">
                   Try:
                   - Checking the network cables, modem, and router.
                   - Checking the proxy and the firewall.
                   - Reconnecting to Wi-Fi.
                 </Typography>
 
-                <Typography align="center" variant="body1">
+                <Typography align="center" variant="body2">
                   Press ⌘ + R to reload.
                 </Typography>
               </div>

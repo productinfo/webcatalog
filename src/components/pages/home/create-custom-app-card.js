@@ -12,11 +12,11 @@ import { open as openDialogCreateCustomApp } from '../../../state/dialog-create-
 
 const styles = (theme) => ({
   card: {
-    width: 180,
-    height: 155,
+    width: 160,
+    height: 150,
     boxSizing: 'border-box',
     borderRadius: 4,
-    padding: theme.spacing.unit,
+    padding: theme.spacing(1),
     textAlign: 'center',
     position: 'relative',
     display: 'flex',
@@ -25,6 +25,8 @@ const styles = (theme) => ({
     justifyContent: 'center',
     cursor: 'pointer',
     color: theme.palette.text.primary,
+    border: theme.palette.type === 'dark' ? 'none' : '1px solid rgba(0, 0, 0, 0.12)',
+    outline: 'none',
     '&:hover, &:focus': {
       backgroundColor: theme.palette.action.selected,
     },
@@ -37,8 +39,8 @@ const styles = (theme) => ({
     whiteSpace: 'nowrap',
     textOverflow: 'ellipsis',
     lineHeight: 1,
-    marginTop: theme.spacing.unit,
-    marginBottom: theme.spacing.unit * 2,
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(2),
     fontWeight: 500,
   },
 });
@@ -47,8 +49,11 @@ const CreateCustomAppCard = ({ classes, onOpenDialogCreateCustomApp }) => (
   <Grid item>
     <Paper
       className={classes.card}
-      elevation={1}
+      elevation={0}
       onClick={onOpenDialogCreateCustomApp}
+      onKeyDown={onOpenDialogCreateCustomApp}
+      role="button"
+      tabIndex="0"
     >
       <BrushIcon className={classes.icon} />
       <Typography variant="subtitle2" className={classes.desc}>

@@ -12,11 +12,11 @@ import { requestOpenInBrowser } from '../../../senders';
 
 const styles = (theme) => ({
   card: {
-    width: 180,
-    height: 155,
+    width: 160,
+    height: 150,
     boxSizing: 'border-box',
     borderRadius: 4,
-    padding: theme.spacing.unit,
+    padding: theme.spacing(1),
     textAlign: 'center',
     position: 'relative',
     display: 'flex',
@@ -25,6 +25,8 @@ const styles = (theme) => ({
     justifyContent: 'center',
     cursor: 'pointer',
     color: theme.palette.text.primary,
+    border: theme.palette.type === 'dark' ? 'none' : '1px solid rgba(0, 0, 0, 0.12)',
+    outline: 'none',
     '&:hover, &:focus': {
       backgroundColor: theme.palette.action.selected,
     },
@@ -37,8 +39,8 @@ const styles = (theme) => ({
     whiteSpace: 'nowrap',
     textOverflow: 'ellipsis',
     lineHeight: 1,
-    marginTop: theme.spacing.unit,
-    marginBottom: theme.spacing.unit * 2,
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(2),
     fontWeight: 500,
   },
 });
@@ -47,8 +49,11 @@ const SubmitAppCard = ({ classes }) => (
   <Grid item>
     <Paper
       className={classes.card}
-      elevation={1}
-      onClick={() => requestOpenInBrowser('https://github.com/quanglam2807/webcatalog/issues/new?template=app.md&title=app%3A+')}
+      elevation={0}
+      onClick={() => requestOpenInBrowser('https://github.com/atomery/webcatalog/issues/new?template=app.md&title=app%3A+')}
+      onKeyDown={() => requestOpenInBrowser('https://github.com/atomery/webcatalog/issues/new?template=app.md&title=app%3A+')}
+      role="link"
+      tabIndex="0"
     >
       <AddCircleIcon className={classes.icon} />
       <Typography variant="subtitle2" className={classes.desc}>

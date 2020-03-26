@@ -115,6 +115,7 @@ const createAsync = () => {
   });
 
   win = new BrowserWindow({
+    backgroundColor: '#FFF',
     x: mainWindowState.x,
     y: mainWindowState.y,
     width: mainWindowState.width,
@@ -123,7 +124,7 @@ const createAsync = () => {
     minWidth: 350,
     title: global.appJson.name,
     titleBarStyle: 'hidden',
-    show: !wasOpenedAsHidden,
+    show: false,
     icon: process.platform === 'linux' ? path.resolve(__dirname, '..', 'icon.png') : null,
     autoHideMenuBar: getPreference('hideMenuBar'),
     webPreferences: {
@@ -173,7 +174,7 @@ const createAsync = () => {
 
   // Fix webview is not resized automatically
   // when window is maximized on Linux
-  // https://github.com/quanglam2807/webcatalog/issues/561
+  // https://github.com/atomery/webcatalog/issues/561
   if (process.platform === 'linux') {
     const handleMaximize = () => {
       // getContentSize is not updated immediately
@@ -189,8 +190,16 @@ const createAsync = () => {
     win.on('unmaximize', handleMaximize);
   }
 
+  return new Promise((resolve) => {
+    win.once('ready-to-show', () => {
+      resolve();
+      if (!wasOpenedAsHidden) {
+        win.show();
+      }
+    });
 
-  return Promise.resolve();
+    win.loadURL(REACT_PATH);
+  });
 };
 
 const show = () => {

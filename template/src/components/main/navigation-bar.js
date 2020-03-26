@@ -35,18 +35,18 @@ const styles = (theme) => ({
     borderBottom: '1px solid rgba(0, 0, 0, 0.2)',
     display: 'flex',
     alignItems: 'center',
-    paddingLeft: theme.spacing.unit,
-    paddingRight: theme.spacing.unit,
+    paddingLeft: theme.spacing(1),
+    paddingRight: theme.spacing(1),
     WebkitAppRegion: 'drag',
     WebkitUserSelect: 'none',
   },
   rootWithTrafficLights: {
-    paddingLeft: 68 + theme.spacing.unit,
+    paddingLeft: 68 + theme.spacing(1),
   },
   center: {
     flex: 1,
-    paddingLeft: theme.spacing.unit,
-    paddingRight: theme.spacing.unit,
+    paddingLeft: theme.spacing(1),
+    paddingRight: theme.spacing(1),
   },
   iconButton: {
     padding: 6,
@@ -151,7 +151,7 @@ const NavigationBar = ({
           ? <NotificationsPausedIcon className={classes.icon} />
           : <NotificationsIcon className={classes.icon} />}
       </IconButton>
-      <IconButton aria-label="Preferences" className={classes.iconButton} onClick={requestShowPreferencesWindow}>
+      <IconButton aria-label="Preferences" className={classes.iconButton} onClick={() => requestShowPreferencesWindow()}>
         <SettingsIcon className={classes.icon} />
       </IconButton>
     </div>
@@ -159,7 +159,7 @@ const NavigationBar = ({
 );
 
 NavigationBar.defaultProps = {
-  address: null,
+  address: '',
 };
 
 NavigationBar.propTypes = {
@@ -174,7 +174,7 @@ NavigationBar.propTypes = {
 };
 
 const mapStateToProps = (state) => ({
-  address: state.general.address,
+  address: state.general.address || '',
   addressEdited: Boolean(state.general.addressEdited),
   canGoBack: state.general.canGoBack,
   canGoForward: state.general.canGoForward,

@@ -7,10 +7,15 @@ const {
 } = require('electron');
 const path = require('path');
 const fsExtra = require('fs-extra');
+const {
+  ElectronBlocker
+} = require('@cliqz/adblocker-electron');
 
 const appJson = require('../app.json');
 
-const { getPreferences } = require('./preferences');
+const {
+  getPreferences
+} = require('./preferences');
 const {
   getWorkspace,
   setWorkspace,
@@ -18,6 +23,7 @@ const {
 
 const sendToAllWindows = require('./send-to-all-windows');
 const getViewBounds = require('./get-view-bounds');
+const customizedFetch = require('./customized-fetch');
 
 const views = {};
 const badgeCounts = {};
@@ -69,7 +75,7 @@ const isInternalUrl = (url, currentInternalUrls) => {
     const internalDomain = equivalentDomain(extractDomain(internalUrl));
 
     // Ex: music.yandex.ru => passport.yandex.ru?retpath=....music.yandex.ru
-    // https://github.com/quanglam2807/webcatalog/issues/546#issuecomment-586639519
+    // https://github.com/atomery/webcatalog/issues/546#issuecomment-586639519
     if (domain === 'clck.yandex.ru' || domain === 'passport.yandex.ru') {
       return url.includes(internalDomain);
     }
@@ -85,56 +91,96 @@ const addView = (browserWindow, workspace) => {
   if (views[workspace.id] != null) return;
 
   const {
+    blockAds,
     customUserAgent,
+    proxyBypassRules,
+    proxyPacScript,
+    proxyRules,
+    proxyType,
     rememberLastPageVisited,
     shareWorkspaceBrowsingData,
+    spellcheck,
+    spellcheckLanguages,
     unreadCountBadge,
   } = getPreferences();
 
+  // configure session, proxy & ad blocker
+  const partitionId = shareWorkspaceBrowsingData ? 'persist:shared' : `persist:${workspace.id}`;
+  // session
+  const ses = session.fromPartition(partitionId);
+  // proxy
+  if (proxyType === 'rules') {
+    ses.setProxy({
+      proxyRules,
+      proxyBypassRules,
+    });
+  } else if (proxyType === 'pacScript') {
+    ses.setProxy({
+      proxyPacScript,
+      proxyBypassRules,
+    });
+  }
+  // blocker
+  if (blockAds) {
+    ElectronBlocker.fromPrebuiltAdsAndTracking(customizedFetch, {
+      path: path.join(app.getPath('userData'), 'adblocker.bin'),
+      read: fsExtra.readFile,
+      write: fsExtra.writeFile,
+    }).then((blocker) => {
+      blocker.enableBlockingInSession(ses);
+    });
+  }
+  // spellchecker
+  if (spellcheck && process.platform !== 'darwin') {
+    ses.setSpellCheckerLanguages(spellcheckLanguages);
+  }
+
   const view = new BrowserView({
+    backgroundColor: '#FFF',
     webPreferences: {
+      spellcheck,
       nativeWindowOpen: true,
       nodeIntegration: false,
       contextIsolation: true,
-      partition: shareWorkspaceBrowsingData ? 'persist:shared' : `persist:${workspace.id}`,
+      session: ses,
       preload: path.join(__dirname, '..', 'preload', 'view.js'),
     },
   });
 
   let adjustUserAgentByUrl = () => false;
   if (customUserAgent) {
-    view.webContents.setUserAgent(customUserAgent);
+    view.webContents.userAgent = customUserAgent;
   } else {
     // Hide Electron from UA to improve compatibility
-    // https://github.com/quanglam2807/webcatalog/issues/182
-    const uaStr = view.webContents.getUserAgent();
+    // https://github.com/atomery/webcatalog/issues/182
+    const uaStr = view.webContents.userAgent;
     const commonUaStr = uaStr
       // Fix WhatsApp requires Google Chrome 49+ bug
-      .replace(` ${app.getName()}/${app.getVersion()}`, '')
+      .replace(` ${app.name}/${app.getVersion()}`, '')
       // Hide Electron from UA to improve compatibility
-      // https://github.com/quanglam2807/webcatalog/issues/182
+      // https://github.com/atomery/webcatalog/issues/182
       .replace(` Electron/${process.versions.electron}`, '');
-    commonUaStr = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36";
-    view.webContents.setUserAgent(commonUaStr);
+    commonUaStr = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36";
+    view.webContents.userAgent = commonUaStr;
 
     // fix Google prevents signing in because of security concerns
-    // https://github.com/quanglam2807/webcatalog/issues/455
+    // https://github.com/atomery/webcatalog/issues/455
     // https://github.com/meetfranz/franz/issues/1720#issuecomment-566460763
-//    const fakedEdgeUaStr = `${commonUaStr} Edge/18.18875`;
-//    adjustUserAgentByUrl = (url) => {
-//      const navigatedDomain = extractDomain(url);
-//      const currentUaStr = view.webContents.getUserAgent();
-//      if (navigatedDomain === 'accounts.google.com') {
-//        if (currentUaStr !== fakedEdgeUaStr) {
-//          view.webContents.setUserAgent(fakedEdgeUaStr);
-//          return true;
-//        }
-//      } else if (currentUaStr !== commonUaStr) {
-//        view.webContents.setUserAgent(commonUaStr);
-//        return true;
-//      }
-//      return false;
-//    };
+    const fakedEdgeUaStr = `${commonUaStr} Edge/18.18875`;
+    adjustUserAgentByUrl = (url) => {
+      const navigatedDomain = extractDomain(url);
+      const currentUaStr = view.webContents.userAgent;
+      if (navigatedDomain === 'accounts.google.com') {
+        if (currentUaStr !== fakedEdgeUaStr) {
+          // view.webContents.userAgent = fakedEdgeUaStr;
+          return true;
+        }
+      } else if (currentUaStr !== commonUaStr) {
+        // view.webContents.userAgent = commonUaStr;
+        return true;
+      }
+      return false;
+    };
   }
 
   view.webContents.on('will-navigate', (e, url) => {
@@ -171,7 +217,7 @@ const addView = (browserWindow, workspace) => {
   if (workspace.active) {
     const handleFocus = () => {
       // focus on webview
-      // https://github.com/quanglam2807/webcatalog/issues/398
+      // https://github.com/atomery/webcatalog/issues/398
       view.webContents.focus();
       view.webContents.removeListener('did-stop-loading', handleFocus);
     };
@@ -201,7 +247,7 @@ const addView = (browserWindow, workspace) => {
 
   view.webContents.on('did-navigate', (e, url) => {
     // fix Google prevents signing in because of security concerns
-    // https://github.com/quanglam2807/webcatalog/issues/455
+    // https://github.com/atomery/webcatalog/issues/455
     // https://github.com/meetfranz/franz/issues/1720#issuecomment-566460763
     // will-navigate doesn't trigger for loadURL, goBack, goForward
     // so user agent to needed to be double check here
@@ -243,9 +289,10 @@ const addView = (browserWindow, workspace) => {
     if (
       // Google: Switch account
       nextDomain === 'accounts.google.com'
-      // https://github.com/quanglam2807/webcatalog/issues/315
-      || ((appDomain.includes('asana.com') || currentDomain.includes('asana.com')) && nextDomain.includes('asana.com'))
-      || (disposition === 'foreground-tab' && isInternalUrl(nextUrl, [appUrl, currentUrl]))
+      // https://github.com/atomery/webcatalog/issues/315
+      ||
+      ((appDomain.includes('asana.com') || currentDomain.includes('asana.com')) && nextDomain.includes('asana.com')) ||
+      (disposition === 'foreground-tab' && isInternalUrl(nextUrl, [appUrl, currentUrl]))
     ) {
       e.preventDefault();
       adjustUserAgentByUrl(nextUrl);
@@ -269,8 +316,8 @@ const addView = (browserWindow, workspace) => {
 
     // open external url in browser
     if (
-      nextDomain != null
-      && (disposition === 'foreground-tab' || disposition === 'background-tab')
+      nextDomain != null &&
+      (disposition === 'foreground-tab' || disposition === 'background-tab')
     ) {
       e.preventDefault();
       shell.openExternal(nextUrl);
@@ -279,10 +326,10 @@ const addView = (browserWindow, workspace) => {
 
     // App tries to open external link using JS
     // nextURL === 'about:blank' but then window will redirect to the external URL
-    // https://github.com/quanglam2807/webcatalog/issues/467#issuecomment-569857721
+    // https://github.com/atomery/webcatalog/issues/467#issuecomment-569857721
     if (
-      nextDomain === null
-      && (disposition === 'foreground-tab' || disposition === 'background-tab')
+      nextDomain === null &&
+      (disposition === 'foreground-tab' || disposition === 'background-tab')
     ) {
       e.preventDefault();
       const newOptions = {
@@ -319,7 +366,8 @@ const addView = (browserWindow, workspace) => {
     if (!askForDownloadPath) {
       const finalFilePath = path.join(downloadPath, item.getFilename());
       if (!fsExtra.existsSync(finalFilePath)) {
-        item.setSavePath(finalFilePath);
+        // eslint-disable-next-line no-param-reassign
+        item.savePath = finalFilePath;
       }
     }
   });
@@ -342,7 +390,7 @@ const addView = (browserWindow, workspace) => {
         count += c;
       });
 
-      app.setBadgeCount(count);
+      app.badgeCount = count;
 
       if (process.platform === 'win32') {
         if (count > 0) {
@@ -369,7 +417,7 @@ const addView = (browserWindow, workspace) => {
 
   // Handle audio & notification preferences
   if (shouldMuteAudio !== undefined) {
-    view.webContents.setAudioMuted(shouldMuteAudio);
+    view.webContents.audioMuted = shouldMuteAudio;
   }
   view.webContents.once('did-stop-loading', () => {
     view.webContents.send('should-pause-notifications-changed', workspace.disableNotifications || shouldPauseNotifications);
@@ -388,8 +436,8 @@ const addView = (browserWindow, workspace) => {
     });
   }
 
-  const initialUrl = (rememberLastPageVisited && workspace.lastUrl)
-  || workspace.homeUrl || appJson.url;
+  const initialUrl = (rememberLastPageVisited && workspace.lastUrl) ||
+    workspace.homeUrl || appJson.url;
   adjustUserAgentByUrl(initialUrl);
   view.webContents.loadURL(initialUrl);
 };
@@ -425,7 +473,7 @@ const setActiveView = (browserWindow, id) => {
     });
 
     // focus on webview
-    // https://github.com/quanglam2807/webcatalog/issues/398
+    // https://github.com/atomery/webcatalog/issues/398
     view.webContents.focus();
 
 
@@ -453,7 +501,7 @@ const setViewsAudioPref = (_shouldMuteAudio) => {
     const view = views[id];
     if (view != null) {
       const workspace = getWorkspace(id);
-      view.webContents.setAudioMuted(workspace.disableAudio || shouldMuteAudio);
+      view.webContents.audioMuted = workspace.disableAudio || shouldMuteAudio;
     }
   });
 };

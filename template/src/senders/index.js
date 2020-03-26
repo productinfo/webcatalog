@@ -14,10 +14,12 @@ export const requestQuit = () => ipcRenderer.send('request-quit');
 export const requestCheckForUpdates = () => ipcRenderer.send('request-check-for-updates');
 
 export const requestShowAboutWindow = () => ipcRenderer.send('request-show-about-window');
-export const requestShowPreferencesWindow = () => ipcRenderer.send('request-show-preferences-window');
+export const requestShowPreferencesWindow = (scrollTo) => ipcRenderer.send('request-show-preferences-window', scrollTo);
 export const requestShowEditWorkspaceWindow = (id) => ipcRenderer.send('request-show-edit-workspace-window', id);
 export const requestShowCodeInjectionWindow = (type) => ipcRenderer.send('request-show-code-injection-window', type);
 export const requestShowNotificationsWindow = () => ipcRenderer.send('request-show-notifications-window');
+export const requestShowProxyWindow = () => ipcRenderer.send('request-show-proxy-window');
+export const requestShowSpellcheckLanguagesWindow = () => ipcRenderer.send('request-show-spellcheck-languages-window');
 
 // Notifications
 export const requestShowNotification = (opts) => ipcRenderer.send('request-show-notification', opts);

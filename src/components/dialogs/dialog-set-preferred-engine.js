@@ -32,16 +32,16 @@ import EnhancedDialogTitle from '../shared/enhanced-dialog-title';
 
 const styles = (theme) => ({
   grid: {
-    marginTop: theme.spacing.unit,
+    marginTop: theme.spacing(1),
   },
   tip: {
-    paddingTop: theme.spacing.unit,
-    paddingBottom: theme.spacing.unit,
+    paddingTop: theme.spacing(1),
+    paddingBottom: theme.spacing(1),
   },
   dialogActions: {
     borderTop: `1px solid ${theme.palette.divider}`,
     margin: 0,
-    padding: theme.spacing.unit,
+    padding: theme.spacing(1),
   },
   inline: {
     display: 'inline',
@@ -75,7 +75,7 @@ const DialogSetPreferredEngine = (props) => {
           you will have to uninstall and then reinstall to change the engine.
         </Typography>
 
-        <List>
+        <List disablePadding>
           <ListItem
             alignItems="flex-start"
             button
@@ -87,7 +87,7 @@ const DialogSetPreferredEngine = (props) => {
             </ListItemAvatar>
             <ListItemText
               primary="Electron (highly recommended)"
-              secondary="This option creates Electron-based app with many exclusive features such as workspaces, notifications, badges and email handling. It takes more disk space (up to 200 MB per app), needs to be updated manually and doesn't support with DRM-protected apps such as Netflix or Spotify."
+              secondary="This option creates Electron-based app with many exclusive features such as workspaces, notifications, badges and email handling. It takes more disk space (up to 200 MB per app), needs to be updated manually and doesn't support DRM-protected apps such as Netflix or Spotify."
             />
           </ListItem>
           <ListItem

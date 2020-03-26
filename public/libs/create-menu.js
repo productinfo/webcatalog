@@ -51,23 +51,23 @@ const createMenu = () => {
       submenu: [
         {
           label: 'WebCatalog Support',
-          click: () => shell.openExternal('https://getwebcatalog.com/support'),
+          click: () => shell.openExternal('https://webcatalogapp.com/support'),
         },
         {
           label: 'Report a Bug via GitHub...',
-          click: () => shell.openExternal('https://github.com/quanglam2807/webcatalog/issues'),
+          click: () => shell.openExternal('https://github.com/atomery/webcatalog/issues'),
         },
         {
           label: 'Request a New Feature via GitHub...',
-          click: () => shell.openExternal('https://github.com/quanglam2807/webcatalog/issues/new?template=feature.md&title=feature%3A+'),
+          click: () => shell.openExternal('https://github.com/atomery/webcatalog/issues/new?template=feature.md&title=feature%3A+'),
         },
         {
           label: 'Submit New App to Catalog...',
-          click: () => shell.openExternal('https://github.com/quanglam2807/webcatalog/issues/new?template=app.md&title=app%3A+'),
+          click: () => shell.openExternal('https://github.com/atomery/webcatalog/issues/new?template=app.md&title=app%3A+'),
         },
         {
           label: 'Learn More...',
-          click: () => shell.openExternal('https://getwebcatalog.com'),
+          click: () => shell.openExternal('https://webcatalogapp.com'),
         },
       ],
     },
@@ -94,7 +94,7 @@ const createMenu = () => {
 
   if (process.platform === 'darwin') {
     template.unshift({
-      label: app.getName(),
+      label: app.name,
       submenu: [
         {
           label: 'About WebCatalog',

@@ -1,10 +1,14 @@
 const path = require('path');
-const { app, systemPreferences } = require('electron');
+const {
+  app,
+  session,
+  nativeTheme,
+} = require('electron');
 const { autoUpdater } = require('electron-updater');
 
 const createMenu = require('./libs/create-menu');
 const sendToAllWindows = require('./libs/send-to-all-windows');
-const { getPreference } = require('./libs/preferences');
+const { getPreferences } = require('./libs/preferences');
 const loadListeners = require('./listeners');
 
 const mainWindow = require('./windows/main');
@@ -12,6 +16,9 @@ const mainWindow = require('./windows/main');
 const packageJson = require('../package.json');
 
 // require('./libs/updater');
+
+// see https://github.com/electron/electron/issues/18397
+app.allowRendererProcessReuse = true;
 
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -32,25 +39,35 @@ if (!gotTheLock) {
     global.templateVersion = packageJson.templateVersion;
     global.defaultIcon = path.join(app.getAppPath(), 'default-icon.png');
 
+    const {
+      allowPrerelease,
+      proxyBypassRules,
+      proxyPacScript,
+      proxyRules,
+      proxyType,
+    } = getPreferences();
+
+    // configure proxy for default session
+    if (proxyType === 'rules') {
+      session.defaultSession.setProxy({
+        proxyRules,
+        proxyBypassRules,
+      });
+    } else if (proxyType === 'pacScript') {
+      session.defaultSession.setProxy({
+        proxyPacScript,
+        proxyBypassRules,
+      });
+    }
+
     mainWindow.createAsync();
     createMenu();
 
-    /* Electron 7
     nativeTheme.addListener('updated', () => {
       sendToAllWindows('native-theme-updated');
     });
-    */
 
-    if (process.platform === 'darwin') {
-      systemPreferences.subscribeNotification(
-        'AppleInterfaceThemeChangedNotification',
-        () => {
-          sendToAllWindows('native-theme-updated');
-        },
-      );
-    }
-
-    autoUpdater.allowPrerelease = getPreference('allowPrerelease');
+    autoUpdater.allowPrerelease = allowPrerelease;
   });
 
   app.on('window-all-closed', () => {

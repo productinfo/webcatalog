@@ -38,20 +38,21 @@ import { open as openDialogCreateCustomApp } from '../../state/dialog-create-cus
 
 const styles = (theme) => ({
   card: {
-    width: 180,
-    height: 155,
+    width: 160,
+    height: 150,
     boxSizing: 'border-box',
     borderRadius: 4,
-    padding: theme.spacing.unit,
+    padding: theme.spacing(1),
     textAlign: 'center',
     position: 'relative',
+    border: theme.palette.type === 'dark' ? 'none' : '1px solid rgba(0, 0, 0, 0.12)',
   },
   appName: {
     overflow: 'hidden',
     whiteSpace: 'nowrap',
     textOverflow: 'ellipsis',
     lineHeight: 1,
-    marginTop: theme.spacing.unit,
+    marginTop: theme.spacing(1),
     fontWeight: 500,
   },
   appUrl: {
@@ -64,19 +65,17 @@ const styles = (theme) => ({
     height: 48,
   },
   actionContainer: {
-    marginTop: theme.spacing.unit,
+    marginTop: theme.spacing(1),
   },
   actionButton: {
     minWidth: 'auto',
-    boxShadow: 'none',
     fontSize: '0.8em',
   },
   topRight: {
     position: 'absolute',
-    top: theme.spacing.unit,
-    right: theme.spacing.unit,
+    top: theme.spacing(1),
+    right: theme.spacing(1),
     color: theme.palette.text.secondary,
-    padding: theme.spacing.unit,
   },
 });
 
@@ -136,10 +135,10 @@ const AppCard = (props) => {
 
     let label = 'Install';
     if (status === INSTALLING && version) {
-      if (cancelable) label = 'Waiting to Update...';
+      if (cancelable) label = 'Queueing...';
       else label = 'Updating...';
     } else if (status === INSTALLING) {
-      if (cancelable) label = 'Waiting to Install...';
+      if (cancelable) label = 'Queueing...';
       else label = 'Installing...';
     } else if (status === UNINSTALLING) label = 'Uninstalling...';
 
@@ -158,7 +157,7 @@ const AppCard = (props) => {
 
   return (
     <Grid item>
-      <Paper elevation={1} className={classes.card}>
+      <Paper elevation={0} className={classes.card}>
         <img
           alt={name}
           className={classes.paperIcon}
@@ -167,7 +166,7 @@ const AppCard = (props) => {
         <Typography variant="subtitle2" className={classes.appName}>
           {name}
         </Typography>
-        <Typography variant="body1" color="textSecondary" className={classes.appUrl}>
+        <Typography variant="body2" color="textSecondary" className={classes.appUrl}>
           {extractHostname(url)}
         </Typography>
 
@@ -177,13 +176,14 @@ const AppCard = (props) => {
         <StatedMenu
           id={`more-menu-${id}`}
           buttonElement={(
-            <IconButton aria-label="More Options" classes={{ root: classes.topRight }}>
+            <IconButton size="small" aria-label="More Options" classes={{ root: classes.topRight }}>
               <MoreVertIcon fontSize="small" />
             </IconButton>
           )}
         >
           {status === INSTALLING && cancelable && (
             <MenuItem
+              dense
               onClick={() => {
                 if (version) return requestCancelUpdateApp(id);
                 return requestCancelInstallApp(id);
@@ -193,11 +193,12 @@ const AppCard = (props) => {
             </MenuItem>
           )}
           {status === INSTALLED && isOutdated && (
-            <MenuItem onClick={() => requestUninstallApp(id, name)}>
+            <MenuItem dense onClick={() => requestUninstallApp(id, name)}>
               Uninstall
             </MenuItem>
           )}
           <MenuItem
+            dense
             onClick={() => onOpenDialogCreateCustomApp({
               name: `${name} 2`,
               url,
@@ -208,14 +209,14 @@ const AppCard = (props) => {
             {name}
           </MenuItem>
           {engine && (
-            <>
-              <Divider />
-              <MenuItem onClick={null} disabled>
+            [
+              <Divider key={`menu-divider-${id}`} />,
+              <MenuItem dense key={`menu-engine-${id}`} onClick={null} disabled>
                 Installed with&nbsp;
                 {getEngineName(engine)}
-              </MenuItem>
-              {engine === 'electron' && version && (
-                <MenuItem onClick={null} disabled>
+              </MenuItem>,
+              engine === 'electron' && version && (
+                <MenuItem dense key={`menu-version-${id}`} onClick={null} disabled>
                   Version&nbsp;
                   {version}
                   {isOutdated && (
@@ -226,8 +227,8 @@ const AppCard = (props) => {
                     </span>
                   )}
                 </MenuItem>
-              )}
-            </>
+              ),
+            ]
           )}
         </StatedMenu>
 

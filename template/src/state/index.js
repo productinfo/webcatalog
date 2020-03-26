@@ -5,13 +5,15 @@ import {
 } from 'redux';
 import thunkMiddleware from 'redux-thunk';
 
-import auth from './auth/reducers';
-import codeInjection from './code-injection/reducers';
-import customUserAgent from './custom-user-agent/reducers';
-import editWorkspace from './edit-workspace/reducers';
+import dialogAuth from './dialog-auth/reducers';
+import dialogCodeInjection from './dialog-code-injection/reducers';
+import dialogCustomUserAgent from './dialog-custom-user-agent/reducers';
+import dialogEditWorkspace from './dialog-edit-workspace/reducers';
+import dialogGoToUrl from './dialog-go-to-url/reducers';
+import dialogProxy from './dialog-proxy/reducers';
+import dialogSpellcheckLanguages from './dialog-spellcheck-languages/reducers';
 import findInPage from './find-in-page/reducers';
 import general from './general/reducers';
-import goToUrl from './go-to-url/reducers';
 import notifications from './notifications/reducers';
 import preferences from './preferences/reducers';
 import systemPreferences from './system-preferences/reducers';
@@ -20,13 +22,15 @@ import workspaces from './workspaces/reducers';
 import loadListeners from '../listeners';
 
 const rootReducer = combineReducers({
-  auth,
-  codeInjection,
-  customUserAgent,
-  editWorkspace,
+  dialogAuth,
+  dialogCodeInjection,
+  dialogCustomUserAgent,
+  dialogEditWorkspace,
+  dialogGoToUrl,
+  dialogProxy,
+  dialogSpellcheckLanguages,
   findInPage,
   general,
-  goToUrl,
   notifications,
   preferences,
   systemPreferences,

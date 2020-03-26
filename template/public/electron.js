@@ -1,6 +1,10 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 const {
-  app, protocol, ipcMain, systemPreferences,
+  app,
+  ipcMain,
+  protocol,
+  session,
+  nativeTheme,
 } = require('electron');
 
 const loadListeners = require('./listeners');
@@ -20,6 +24,9 @@ const extractHostname = require('./libs/extract-hostname');
 const MAILTO_URLS = require('./constants/mailto-urls');
 
 const appJson = require('./app.json');
+
+// see https://github.com/electron/electron/issues/18397
+app.allowRendererProcessReuse = true;
 
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -45,11 +52,34 @@ if (!gotTheLock) {
   loadListeners();
 
   const commonInit = () => {
-    const hibernateUnusedWorkspacesAtLaunch = getPreference('hibernateUnusedWorkspacesAtLaunch');
+    const {
+      hibernateUnusedWorkspacesAtLaunch,
+      proxyBypassRules,
+      proxyPacScript,
+      proxyRules,
+      proxyType,
+    } = getPreferences();
+
+    // configure proxy for default session
+    if (proxyType === 'rules') {
+      session.defaultSession.setProxy({
+        proxyRules,
+        proxyBypassRules,
+      });
+    } else if (proxyType === 'pacScript') {
+      session.defaultSession.setProxy({
+        proxyPacScript,
+        proxyBypassRules,
+      });
+    }
 
     mainWindow.createAsync()
       .then(() => {
         createMenu();
+
+        nativeTheme.addListener('updated', () => {
+          sendToAllWindows('native-theme-updated');
+        });
 
         const workspaceObjects = getWorkspaces();
 
@@ -75,6 +105,7 @@ if (!gotTheLock) {
     global.appJson = appJson;
 
     const {
+      autoCheckForUpdates,
       attachToMenubar,
       sidebar,
       titleBar,
@@ -89,7 +120,7 @@ if (!gotTheLock) {
 
     commonInit();
 
-    const autoCheckForUpdates = false;//getPreference('autoCheckForUpdates');
+    autoCheckForUpdates = false;
     if (autoCheckForUpdates) {
       const lastCheckForUpdates = getPreference('lastCheckForUpdates');
       const updateInterval = 7 * 24 * 60 * 60 * 1000; // one week
@@ -98,20 +129,6 @@ if (!gotTheLock) {
         checkForUpdates(true);
         setPreference('lastCheckForUpdates', now);
       }
-    }
-
-    /* Electron 7
-    nativeTheme.addListener('updated', () => {
-      sendToAllWindows('native-theme-updated');
-    });
-    */
-    if (process.platform === 'darwin') {
-      systemPreferences.subscribeNotification(
-        'AppleInterfaceThemeChangedNotification',
-        () => {
-          sendToAllWindows('native-theme-updated');
-        },
-      );
     }
   });
 

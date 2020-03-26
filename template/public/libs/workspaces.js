@@ -2,13 +2,13 @@ const { app } = require('electron');
 const path = require('path');
 const fsExtra = require('fs-extra');
 const settings = require('electron-settings');
-const uuidv1 = require('uuid/v1');
+const { v1: uuidv1 } = require('uuid');
 const Jimp = require('jimp');
 const isUrl = require('is-url');
-const download = require('download');
 const tmp = require('tmp');
 
-const sendToAllWindows = require('../libs/send-to-all-windows');
+const sendToAllWindows = require('./send-to-all-windows');
+const downloadAsync = require('./download-async');
 
 const v = '43';
 
@@ -143,9 +143,7 @@ const setWorkspacePicture = (id, sourcePicturePath) => {
       if (isUrl(sourcePicturePath)) {
         const tmpObj = tmp.dirSync();
         const tmpPath = tmpObj.name;
-        return download(sourcePicturePath, tmpPath, {
-          filename: 'e.png',
-        }).then(() => path.join(tmpPath, 'e.png'));
+        return downloadAsync(sourcePicturePath, path.join(tmpPath, 'e.png')).then(() => path.join(tmpPath, 'e.png'));
       }
 
       return sourcePicturePath;

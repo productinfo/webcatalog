@@ -11,8 +11,6 @@ import {
 
 import { getAppCount } from '../app-management/utils';
 
-const { remote } = window.require('electron');
-
 export const close = () => ({
   type: DIALOG_SET_INSTALLATION_PATH_CLOSE,
 });
@@ -44,13 +42,14 @@ export const save = () => (dispatch, getState) => {
   const appCount = getAppCount(state);
 
   if (appCount > 0) {
+    const { remote } = window.require('electron');
     remote.dialog.showMessageBox(remote.getCurrentWindow(), {
       title: 'Uninstall all of WebCatalog apps first',
-      message: 'You need to uninstall all of your WebCatalog apps before updating this preference.',
+      message: 'You need to uninstall all of your WebCatalog apps before changing this preference.',
       buttons: ['OK'],
       cancelId: 0,
       defaultId: 0,
-    });
+    }).catch(console.log); // eslint-disable-line
     dispatch(close());
   } else {
     requestSetPreference('requireAdmin', requireAdmin);

@@ -14,8 +14,9 @@ const create = () => {
   const attachToMenubar = getPreference('attachToMenubar');
 
   win = new BrowserWindow({
+    backgroundColor: '#FFF',
     width: 400,
-    height: 360,
+    height: 340,
     resizable: false,
     maximizable: false,
     minimizable: false,

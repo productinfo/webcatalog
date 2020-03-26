@@ -16,8 +16,9 @@ const goToUrlWindow = require('../windows/go-to-url');
 const mainWindow = require('../windows/main');
 const notificationsWindow = require('../windows/notifications');
 const preferencesWindow = require('../windows/preferences');
+const proxyWindow = require('../windows/proxy');
 
-const getViewBounds = require('../libs/get-view-bounds');
+const getViewBounds = require('./get-view-bounds');
 
 const {
   getWorkspaces,
@@ -127,7 +128,7 @@ function createMenu() {
 
             if (win != null) {
               const contents = win.getBrowserView().webContents;
-              contents.setZoomFactor(1);
+              contents.zoomFactor = 1;
             }
           },
         },
@@ -139,9 +140,7 @@ function createMenu() {
 
             if (win != null) {
               const contents = win.getBrowserView().webContents;
-              contents.getZoomFactor((zoomFactor) => {
-                contents.setZoomFactor(zoomFactor + 0.1);
-              });
+              contents.zoomFactor += 0.1;
             }
           },
         },
@@ -153,9 +152,7 @@ function createMenu() {
 
             if (win != null) {
               const contents = win.getBrowserView().webContents;
-              contents.getZoomFactor((zoomFactor) => {
-                contents.setZoomFactor(zoomFactor - 0.1);
-              });
+              contents.zoomFactor -= 0.1;
             }
           },
         },
@@ -279,6 +276,19 @@ function createMenu() {
                 }
               },
             },
+            {
+              label: 'Proxy Window',
+              click: () => {
+                const win = proxyWindow.get();
+                if (win != null) {
+                  if (win.webContents.isDevToolsOpened()) {
+                    win.webContents.closeDevTools();
+                  } else {
+                    win.webContents.openDevTools({ mode: 'detach' });
+                  }
+                }
+              },
+            },
             { type: 'separator' },
           ],
         },
@@ -346,11 +356,11 @@ function createMenu() {
       submenu: [
         {
           label: 'WebCatalog Support',
-          click: () => shell.openExternal('https://getwebcatalog.com/support'),
+          click: () => shell.openExternal('https://webcatalogapp.com/support'),
         },
         {
           label: 'WebCatalog Website',
-          click: () => shell.openExternal('https://getwebcatalog.com'),
+          click: () => shell.openExternal('https://webcatalogapp.com'),
         },
       ],
     },

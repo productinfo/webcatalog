@@ -19,18 +19,14 @@ const styles = (theme) => ({
     zIndex: 10,
     position: 'relative',
     borderRadius: 0,
-    paddingLeft: theme.spacing.unit * 3,
-    paddingRight: theme.spacing.unit * 3,
-    [theme.breakpoints.down('xs')]: {
-      paddingLeft: theme.spacing.unit * 1.5,
-      paddingRight: theme.spacing.unit * 1.5,
-    },
+    paddingLeft: theme.spacing(1),
+    paddingRight: theme.spacing(1),
   },
   toolbarSectionSearch: {
     alignItems: 'center',
     display: 'flex',
     flexDirection: 'row',
-    height: 48,
+    height: 40,
     margin: '0 auto',
   },
   searchBarText: {
@@ -43,7 +39,6 @@ const styles = (theme) => ({
     textOverflow: 'ellipsis',
     transform: 'translateY(-1px)',
     fontWeight: 'normal',
-    fontSize: 18,
   },
   input: {
     font: 'inherit',
@@ -86,23 +81,25 @@ class EnhancedAppBar extends React.Component {
     const clearSearchAction = query.length > 0 && (
       <IconButton
         color="default"
+        size="small"
         aria-label="Clear"
         onClick={() => onUpdateQuery('')}
       >
-        <CloseIcon />
+        <CloseIcon fontSize="small" />
       </IconButton>
     );
 
     return (
-      <Paper elevation={2} className={classes.toolbarSearchContainer}>
+      <Paper elevation={1} className={classes.toolbarSearchContainer}>
         <div className={classes.toolbarSectionSearch}>
           <SearchIcon
             className={classes.searchIcon}
+            fontSize="small"
           />
           <Typography
             className={classes.searchBarText}
             color="inherit"
-            variant="h6"
+            variant="subtitle1"
           >
             <input
               className={classes.input}

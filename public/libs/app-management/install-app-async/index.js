@@ -3,7 +3,7 @@ const { fork } = require('child_process');
 const { app } = require('electron');
 const tmp = require('tmp');
 
-const { getPreference } = require('./../../preferences');
+const { getPreference } = require('../../preferences');
 const isEngineInstalled = require('../../is-engine-installed');
 
 const getWin32BravePaths = require('../../get-win32-brave-paths');
@@ -15,6 +15,8 @@ const getWin32EdgePaths = require('../../get-win32-vivaldi-paths');
 const prepareTemplateAsync = require('../prepare-template-async');
 
 let lastUsedTmpPath = null;
+
+const { getPreferences } = require('../../preferences');
 
 const installAppAsync = (
   engine, id, name, url, icon,
@@ -133,12 +135,20 @@ const installAppAsync = (
       );
     }
 
+    const {
+      proxyPacScript,
+      proxyRules,
+      proxyType,
+    } = getPreferences();
+
     const child = fork(scriptPath, params, {
       env: {
         ELECTRON_RUN_AS_NODE: 'true',
         ELECTRON_NO_ASAR: 'true',
-        // for require('download')
         APPDATA: app.getPath('appData'),
+        PROXY_PAC_SCRIPT: proxyPacScript,
+        PROXY_RULES: proxyRules,
+        PROXY_TYPE: proxyType,
       },
     });
 
@@ -155,6 +165,12 @@ const installAppAsync = (
     child.on('exit', (code) => {
       if (code === 1) {
         lastUsedTmpPath = null;
+
+        // force reextracting template code to avoid bugs related to corrupted files
+        if (engine === 'electron') {
+          global.forceExtract = true;
+        }
+
         reject(err || new Error('Forked script failed to run correctly.'));
         return;
       }

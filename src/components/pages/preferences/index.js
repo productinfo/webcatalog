@@ -1,19 +1,29 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import PropTypes from 'prop-types';
 
 import AppBar from '@material-ui/core/AppBar';
 import Divider from '@material-ui/core/Divider';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
-import ListItemText from '@material-ui/core/ListItemText';
+import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
+import ListItemText from '@material-ui/core/ListItemText';
 import MenuItem from '@material-ui/core/MenuItem';
 import Paper from '@material-ui/core/Paper';
 import Switch from '@material-ui/core/Switch';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 
+import BuildIcon from '@material-ui/icons/Build';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import CodeIcon from '@material-ui/icons/Code';
+import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
+import RotateLeftIcon from '@material-ui/icons/RotateLeft';
+import RouterIcon from '@material-ui/icons/Router';
+import SecurityIcon from '@material-ui/icons/Security';
+import StorefrontIcon from '@material-ui/icons/Storefront';
+import SystemUpdateAltIcon from '@material-ui/icons/SystemUpdateAlt';
+import WidgetsIcon from '@material-ui/icons/Widgets';
 
 import StatedMenu from '../../shared/stated-menu';
 
@@ -23,9 +33,10 @@ import getEngineName from '../../../helpers/get-engine-name';
 import { getInstallingAppsAsList, getAppCount } from '../../../state/app-management/utils';
 
 import { open as openDialogAbout } from '../../../state/dialog-about/actions';
+import { open as openDialogLicenseRegistration } from '../../../state/dialog-license-registration/actions';
+import { open as openDialogProxy } from '../../../state/dialog-proxy/actions';
 import { open as openDialogSetInstallationPath } from '../../../state/dialog-set-installation-path/actions';
 import { open as openDialogSetPreferredEngine } from '../../../state/dialog-set-preferred-engine/actions';
-import { open as openDialogLicenseRegistration } from '../../../state/dialog-license-registration/actions';
 
 
 import {
@@ -41,7 +52,9 @@ import {
   requestShowRequireRestartDialog,
 } from '../../../senders';
 
-const { remote } = window.require('electron');
+import webcatalogLogo from '../../../assets/webcatalog-logo.svg';
+import translatiumLogo from '../../../assets/translatium-logo.svg';
+import singleboxLogo from '../../../assets/singlebox-logo.svg';
 
 const styles = (theme) => ({
   root: {
@@ -56,6 +69,9 @@ const styles = (theme) => ({
     WebkitAppRegion: 'drag',
     WebkitUserSelect: 'none',
   },
+  toolbar: {
+    minHeight: 40,
+  },
   title: {
     flex: 1,
     textAlign: 'center',
@@ -63,23 +79,40 @@ const styles = (theme) => ({
   },
   scrollContainer: {
     flex: 1,
-    padding: theme.spacing.unit * 2,
+    padding: theme.spacing(2),
     overflow: 'auto',
     boxSizing: 'border-box',
   },
   sectionTitle: {
-    paddingLeft: theme.spacing.unit * 2,
+    paddingLeft: theme.spacing(2),
   },
   paper: {
-    marginTop: theme.spacing.unit * 0.5,
-    marginBottom: theme.spacing.unit * 3,
+    marginTop: theme.spacing(0.5),
+    marginBottom: theme.spacing(3),
     width: '100%',
     WebkitAppRegion: 'none',
+    border: theme.palette.type === 'dark' ? 'none' : '1px solid rgba(0, 0, 0, 0.12)',
   },
   inner: {
     width: '100%',
     maxWidth: 500,
     margin: '0 auto',
+    [theme.breakpoints.between(800, 928)]: {
+      margin: 0,
+      float: 'right',
+      maxWidth: 'calc(100% - 220px)',
+    },
+  },
+  sidebar: {
+    position: 'fixed',
+    width: 200,
+    color: theme.palette.text.primary,
+    [theme.breakpoints.down(800)]: {
+      display: 'none',
+    },
+  },
+  logo: {
+    height: 28,
   },
 });
 
@@ -110,7 +143,7 @@ const formatBytes = (bytes, decimals = 2) => {
 
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-  return `${parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`;
+  return `${parseFloat((bytes / (k ** i)).toFixed(dm))} ${sizes[i]}`;
 };
 
 const getUpdaterDesc = (status, info) => {
@@ -148,6 +181,7 @@ const Preferences = ({
   installingAppCount,
   onOpenDialogAbout,
   onOpenDialogLicenseRegistration,
+  onOpenDialogProxy,
   onOpenDialogSetInstallationPath,
   onOpenDialogSetPreferredEngine,
   openAtLogin,
@@ -160,37 +194,112 @@ const Preferences = ({
 }) => {
   const handleUpdateInstallationPath = (newInstallationPath, newRequireAdmin) => {
     if (appCount > 0) {
+      const { remote } = window.require('electron');
       remote.dialog.showMessageBox(remote.getCurrentWindow(), {
         title: 'Uninstall all of WebCatalog apps first',
-        message: 'You need to uninstall all of your WebCatalog apps before updating this preference.',
+        message: 'You need to uninstall all of your WebCatalog apps before changing this preference.',
         buttons: ['OK'],
         cancelId: 0,
         defaultId: 0,
-      });
+      }).catch(console.log); // eslint-disable-line
     } else {
       requestSetPreference('requireAdmin', newRequireAdmin);
       requestSetPreference('installationPath', newInstallationPath);
     }
   };
 
+  const sections = {
+    general: {
+      text: 'General',
+      Icon: WidgetsIcon,
+      ref: useRef(),
+    },
+    network: {
+      text: 'Network',
+      Icon: RouterIcon,
+      ref: useRef(),
+    },
+    privacy: {
+      text: 'Privacy & Security',
+      Icon: SecurityIcon,
+      ref: useRef(),
+    },
+    system: {
+      text: 'System',
+      Icon: BuildIcon,
+      ref: useRef(),
+      hidden: window.process.platform === 'linux',
+    },
+    updates: {
+      text: 'Updates',
+      Icon: SystemUpdateAltIcon,
+      ref: useRef(),
+    },
+    advanced: {
+      text: 'Advanced',
+      Icon: CodeIcon,
+      ref: useRef(),
+    },
+    reset: {
+      text: 'Reset',
+      Icon: RotateLeftIcon,
+      ref: useRef(),
+    },
+    atomeryApps: {
+      text: 'Atomery Apps',
+      Icon: StorefrontIcon,
+      ref: useRef(),
+    },
+    miscs: {
+      text: 'Miscellaneous',
+      Icon: MoreHorizIcon,
+      ref: useRef(),
+    },
+  };
+
+  const { remote } = window.require('electron');
+
   return (
     <div className={classes.root}>
       {window.process.platform === 'darwin' && window.mode !== 'menubar' && (
-      <AppBar position="static" className={classes.appBar} elevation={2} color="inherit">
+      <AppBar position="static" className={classes.appBar} elevation={1} color="inherit">
         <Toolbar variant="dense" className={classes.toolbar}>
-          <Typography variant="h6" color="inherit" className={classes.title}>
+          <Typography variant="subtitle1" color="inherit" className={classes.title}>
             Preferences
           </Typography>
         </Toolbar>
       </AppBar>
       )}
       <div className={classes.scrollContainer}>
+        <div className={classes.sidebar}>
+          <List dense>
+            {Object.keys(sections).map((sectionKey, i) => {
+              const {
+                Icon, text, ref, hidden,
+              } = sections[sectionKey];
+              if (hidden) return null;
+              return (
+                <React.Fragment key={sectionKey}>
+                  {i > 0 && <Divider />}
+                  <ListItem button onClick={() => ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                    <ListItemIcon>
+                      <Icon />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={text}
+                    />
+                  </ListItem>
+                </React.Fragment>
+              );
+            })}
+          </List>
+        </div>
         <div className={classes.inner}>
-          <Typography variant="subtitle2" className={classes.sectionTitle}>
+          <Typography variant="subtitle2" color="textPrimary" className={classes.sectionTitle} ref={sections.general.ref}>
             General
           </Typography>
-          <Paper className={classes.paper}>
-            <List dense>
+          <Paper elevation={0} className={classes.paper}>
+            <List disablePadding dense>
               <StatedMenu
                 id="themeSource"
                 buttonElement={(
@@ -200,9 +309,9 @@ const Preferences = ({
                   </ListItem>
                 )}
               >
-                {window.process.platform === 'darwin' && <MenuItem onClick={() => requestSetThemeSource('system')}>System default</MenuItem>}
-                <MenuItem onClick={() => requestSetThemeSource('light')}>Light</MenuItem>
-                <MenuItem onClick={() => requestSetThemeSource('dark')}>Dark</MenuItem>
+                {window.process.platform === 'darwin' && <MenuItem dense onClick={() => requestSetThemeSource('system')}>System default</MenuItem>}
+                <MenuItem dense onClick={() => requestSetThemeSource('light')}>Light</MenuItem>
+                <MenuItem dense onClick={() => requestSetThemeSource('dark')}>Dark</MenuItem>
               </StatedMenu>
               {window.process.platform !== 'darwin' && (
                 <>
@@ -214,6 +323,7 @@ const Preferences = ({
                     />
                     <ListItemSecondaryAction>
                       <Switch
+                        edge="end"
                         color="primary"
                         checked={hideMenuBar}
                         onChange={(e) => {
@@ -233,6 +343,7 @@ const Preferences = ({
                 />
                 <ListItemSecondaryAction>
                   <Switch
+                    edge="end"
                     color="primary"
                     checked={attachToMenubar}
                     onChange={(e) => {
@@ -249,6 +360,7 @@ const Preferences = ({
                 />
                 <ListItemSecondaryAction>
                   <Switch
+                    edge="end"
                     color="primary"
                     checked={attachToMenubar || defaultHome === 'installed'}
                     disabled={attachToMenubar}
@@ -265,12 +377,24 @@ const Preferences = ({
             </List>
           </Paper>
 
-          <Typography variant="subtitle2" className={classes.sectionTitle}>
+          <Typography variant="subtitle2" color="textPrimary" className={classes.sectionTitle} ref={sections.network.ref}>
+            Network
+          </Typography>
+          <Paper elevation={0} className={classes.paper}>
+            <List disablePadding dense>
+              <ListItem button onClick={onOpenDialogProxy}>
+                <ListItemText primary="Configure proxy settings (BETA)" />
+                <ChevronRightIcon color="action" />
+              </ListItem>
+            </List>
+          </Paper>
+
+          <Typography variant="subtitle2" color="textPrimary" className={classes.sectionTitle} ref={sections.privacy.ref}>
             Privacy &amp; Security
           </Typography>
-          <Paper className={classes.paper}>
-            <List dense>
-              <ListItem button onClick={() => requestOpenInBrowser('https://getwebcatalog.com/privacy')}>
+          <Paper elevation={0} className={classes.paper}>
+            <List disablePadding dense>
+              <ListItem button onClick={() => requestOpenInBrowser('https://atomery.com/privacy?app=webcatalog&utm_source=webcatalog_app')}>
                 <ListItemText primary="Privacy Policy" />
               </ListItem>
             </List>
@@ -278,11 +402,16 @@ const Preferences = ({
 
           {window.process.platform !== 'linux' && (
             <>
-              <Typography variant="subtitle2" className={classes.sectionTitle}>
+              <Typography
+                variant="subtitle2"
+                color="textPrimary"
+                className={classes.sectionTitle}
+                ref={sections.system.ref}
+              >
                 System
               </Typography>
-              <Paper className={classes.paper}>
-                <List dense>
+              <Paper elevation={0} className={classes.paper}>
+                <List disablePadding dense>
                   <StatedMenu
                     id="openAtLogin"
                     buttonElement={(
@@ -292,20 +421,59 @@ const Preferences = ({
                       </ListItem>
                     )}
                   >
-                    <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'yes')}>Yes</MenuItem>
-                    <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'yes-hidden')}>Yes, but minimized</MenuItem>
-                    <MenuItem onClick={() => requestSetSystemPreference('openAtLogin', 'no')}>No</MenuItem>
+                    <MenuItem dense onClick={() => requestSetSystemPreference('openAtLogin', 'yes')}>Yes</MenuItem>
+                    <MenuItem dense onClick={() => requestSetSystemPreference('openAtLogin', 'yes-hidden')}>Yes, but minimized</MenuItem>
+                    <MenuItem dense onClick={() => requestSetSystemPreference('openAtLogin', 'no')}>No</MenuItem>
                   </StatedMenu>
                 </List>
               </Paper>
             </>
           )}
 
-          <Typography variant="subtitle2" className={classes.sectionTitle}>
+          <Typography variant="subtitle2" color="textPrimary" className={classes.sectionTitle} ref={sections.updates.ref}>
+            Updates
+          </Typography>
+          <Paper elevation={0} className={classes.paper}>
+            <List disablePadding dense>
+              <ListItem
+                button
+                onClick={() => requestCheckForUpdates(false)}
+                disabled={updaterStatus === 'checking-for-update'
+                  || updaterStatus === 'download-progress'
+                  || updaterStatus === 'download-progress'
+                  || updaterStatus === 'update-available'}
+              >
+                <ListItemText
+                  primary={updaterStatus === 'update-downloaded' ? 'Restart to Apply Updates' : 'Check for Updates'}
+                  secondary={getUpdaterDesc(updaterStatus, updaterInfo)}
+                />
+                <ChevronRightIcon color="action" />
+              </ListItem>
+              <Divider />
+              <ListItem>
+                <ListItemText
+                  primary="Receive pre-release updates"
+                />
+                <ListItemSecondaryAction>
+                  <Switch
+                    edge="end"
+                    color="primary"
+                    checked={allowPrerelease}
+                    onChange={(e) => {
+                      requestSetPreference('allowPrerelease', e.target.checked);
+                      requestShowRequireRestartDialog();
+                    }}
+                  />
+                </ListItemSecondaryAction>
+              </ListItem>
+            </List>
+          </Paper>
+
+          <Typography variant="subtitle2" color="textPrimary" className={classes.sectionTitle} ref={sections.advanced.ref}>
             Advanced
           </Typography>
-          <Paper className={classes.paper}>
-            <List dense>
+          <Paper elevation={0} className={classes.paper}>
+            <List disablePadding dense>
               <ListItem button onClick={onOpenDialogSetPreferredEngine}>
                 <ListItemText primary="Preferred browser engine" secondary={getEngineName(preferredEngine)} />
                 <ChevronRightIcon color="action" />
@@ -317,6 +485,7 @@ const Preferences = ({
                 />
                 <ListItemSecondaryAction>
                   <Switch
+                    edge="end"
                     color="primary"
                     checked={!hideEnginePrompt}
                     onChange={(e) => {
@@ -334,6 +503,7 @@ const Preferences = ({
                     />
                     <ListItemSecondaryAction>
                       <Switch
+                        edge="end"
                         color="primary"
                         checked={createDesktopShortcut}
                         onChange={(e) => {
@@ -349,6 +519,7 @@ const Preferences = ({
                     />
                     <ListItemSecondaryAction>
                       <Switch
+                        edge="end"
                         color="primary"
                         checked={createStartMenuShortcut}
                         onChange={(e) => {
@@ -381,61 +552,69 @@ const Preferences = ({
                   )}
                 >
                   {window.process.platform === 'win32' && (
-                    <>
-                      {(installationPath !== `${remote.app.getPath('home')}\\WebCatalog Apps`) && (
-                        <MenuItem>
+                    [
+                      (installationPath !== `${remote.app.getPath('home')}\\WebCatalog Apps`) && (
+                        <MenuItem dense key="installation-path-menu-item">
                           {installationPath}
                         </MenuItem>
-                      )}
+                      ),
                       <MenuItem
+                        dense
+                        key="default-installation-path-menu-item"
                         onClick={() => {
                           handleUpdateInstallationPath(`${remote.app.getPath('home')}\\WebCatalog Apps`, false);
                         }}
                       >
                         {`${remote.app.getPath('home')}\\WebCatalog Apps`}
-                      </MenuItem>
-                    </>
+                      </MenuItem>,
+                    ]
                   )}
                   {window.process.platform === 'darwin' && (
-                    <>
-                      {(installationPath !== '~/Applications/WebCatalog Apps' && installationPath !== '/Applications/WebCatalog Apps') && (
-                        <MenuItem>
+                    [
+                      (installationPath !== '~/Applications/WebCatalog Apps' && installationPath !== '/Applications/WebCatalog Apps') && (
+                        <MenuItem dense key="installation-path-menu-item">
                           {installationPath}
                         </MenuItem>
-                      )}
+                      ),
                       <MenuItem
+                        dense
+                        key="default-installation-path-menu-item"
                         onClick={() => {
                           handleUpdateInstallationPath('~/Applications/WebCatalog Apps', false);
                         }}
                       >
                         ~/Applications/WebCatalog Apps (default)
-                      </MenuItem>
+                      </MenuItem>,
                       <MenuItem
+                        dense
+                        key="default-sudo-installation-path-menu-item"
                         onClick={() => {
                           handleUpdateInstallationPath('/Applications/WebCatalog Apps', true);
                         }}
                       >
                         /Applications/WebCatalog Apps (requires sudo)
-                      </MenuItem>
-                    </>
+                      </MenuItem>,
+                    ]
                   )}
                   {window.process.platform === 'linux' && (
-                    <>
-                      {(installationPath !== '~/.webcatalog') && (
-                        <MenuItem>
+                    [
+                      (installationPath !== '~/.webcatalog') && (
+                        <MenuItem dense key="installation-path-menu-item">
                           {installationPath}
                         </MenuItem>
-                      )}
+                      ),
                       <MenuItem
+                        dense
+                        key="default-installation-path-menu-item"
                         onClick={() => {
                           handleUpdateInstallationPath('~/.webcatalog', false);
                         }}
                       >
                         ~/.webcatalog (default)
-                      </MenuItem>
-                    </>
+                      </MenuItem>,
+                    ]
                   )}
-                  <MenuItem onClick={onOpenDialogSetInstallationPath}>
+                  <MenuItem dense onClick={onOpenDialogSetInstallationPath}>
                     Custom
                   </MenuItem>
                 </StatedMenu>
@@ -444,30 +623,14 @@ const Preferences = ({
               <ListItem button onClick={requestOpenInstallLocation}>
                 <ListItemText primary={`Open installation path in ${getFileManagerName()}`} />
               </ListItem>
-              <Divider />
-              <ListItem>
-                <ListItemText
-                  primary="Receive pre-release updates"
-                />
-                <ListItemSecondaryAction>
-                  <Switch
-                    color="primary"
-                    checked={allowPrerelease}
-                    onChange={(e) => {
-                      requestSetPreference('allowPrerelease', e.target.checked);
-                      requestShowRequireRestartDialog();
-                    }}
-                  />
-                </ListItemSecondaryAction>
-              </ListItem>
             </List>
           </Paper>
 
-          <Typography variant="subtitle2" className={classes.sectionTitle}>
+          <Typography variant="subtitle2" color="textPrimary" className={classes.sectionTitle} ref={sections.reset.ref}>
             Reset
           </Typography>
-          <Paper className={classes.paper}>
-            <List dense>
+          <Paper elevation={0} className={classes.paper}>
+            <List disablePadding dense>
               <ListItem button onClick={requestResetPreferences}>
                 <ListItemText primary="Restore preferences to their original defaults" />
                 <ChevronRightIcon color="action" />
@@ -475,11 +638,42 @@ const Preferences = ({
             </List>
           </Paper>
 
-          <Typography variant="subtitle2" className={classes.sectionTitle}>
+          <Typography variant="subtitle2" color="textPrimary" className={classes.sectionTitle} ref={sections.atomeryApps.ref}>
+            Atomery Apps
+          </Typography>
+          <Paper elevation={0} className={classes.paper}>
+            <List disablePadding dense>
+              <ListItem button onClick={() => requestOpenInBrowser('https://webcatalogapp.com?utm_source=webcatalog_app')}>
+                <ListItemText
+                  primary={(<img src={webcatalogLogo} alt="WebCatalog" className={classes.logo} />)}
+                  secondary="Run Web Apps like Real Apps"
+                />
+                <ChevronRightIcon color="action" />
+              </ListItem>
+              <Divider />
+              <ListItem button onClick={() => requestOpenInBrowser('https://singleboxapp.com?utm_source=webcatalog_app')}>
+                <ListItemText
+                  primary={(<img src={singleboxLogo} alt="Singlebox" className={classes.logo} />)}
+                  secondary="All Your Apps in One Single Window"
+                />
+                <ChevronRightIcon color="action" />
+              </ListItem>
+              <Divider />
+              <ListItem button onClick={() => requestOpenInBrowser('https://translatiumapp.com?utm_source=webcatalog_app')}>
+                <ListItemText
+                  primary={(<img src={translatiumLogo} alt="Translatium" className={classes.logo} />)}
+                  secondary="Translate Any Languages like a Pro"
+                />
+                <ChevronRightIcon color="action" />
+              </ListItem>
+            </List>
+          </Paper>
+
+          <Typography variant="subtitle2" color="textPrimary" className={classes.sectionTitle} ref={sections.miscs.ref}>
             Miscellaneous
           </Typography>
-          <Paper className={classes.paper}>
-            <List dense>
+          <Paper elevation={0} className={classes.paper}>
+            <List disablePadding dense>
               <ListItem button onClick={onOpenDialogAbout}>
                 <ListItemText primary="About" />
                 <ChevronRightIcon color="action" />
@@ -536,6 +730,7 @@ Preferences.propTypes = {
   installingAppCount: PropTypes.number.isRequired,
   onOpenDialogAbout: PropTypes.func.isRequired,
   onOpenDialogLicenseRegistration: PropTypes.func.isRequired,
+  onOpenDialogProxy: PropTypes.func.isRequired,
   onOpenDialogSetInstallationPath: PropTypes.func.isRequired,
   onOpenDialogSetPreferredEngine: PropTypes.func.isRequired,
   openAtLogin: PropTypes.oneOf(['yes', 'yes-hidden', 'no']).isRequired,
@@ -572,6 +767,7 @@ const actionCreators = {
   openDialogLicenseRegistration,
   openDialogSetInstallationPath,
   openDialogSetPreferredEngine,
+  openDialogProxy,
 };
 
 export default connectComponent(

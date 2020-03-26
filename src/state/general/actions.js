@@ -9,8 +9,6 @@ import {
   UPDATE_MOVING_ALL_APPS,
 } from '../../constants/actions';
 
-const { remote } = window.require('electron');
-
 export const updateIsFullScreen = (isFullScreen) => ({
   type: UPDATE_IS_FULL_SCREEN,
   isFullScreen,
@@ -42,14 +40,15 @@ export const updateMovingAllApps = (movingAllApps) => ({
 });
 
 export const fetchLatestTemplateVersionAsync = () => (dispatch) => {
+  const { remote } = window.require('electron');
   dispatch(updateFetchingLatestTemplateVersion(true));
   return Promise.resolve()
     .then(() => new Promise((resolve) => setTimeout(resolve, 5 * 1000)))
-    .then(() => fetch('https://api.github.com/repos/quanglam2807/webcatalog/releases/latest'))
+    .then(() => window.fetch('https://api.github.com/repos/atomery/webcatalog/releases/latest'))
     .then((res) => res.json())
     .then((release) => {
       const v = release.tag_name;
-      return fetch(`https://raw.githubusercontent.com/quanglam2807/webcatalog/${v}/package.json`);
+      return window.fetch(`https://raw.githubusercontent.com/atomery/webcatalog/${v}/package.json`);
     })
     .then((res) => res.json())
     .then((fetchedJson) => {
